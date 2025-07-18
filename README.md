@@ -89,3 +89,5 @@ thông tin cá nhân :
 <img width="1919" height="1018" alt="image" src="https://github.com/user-attachments/assets/ca735d4e-25ed-489c-a6c6-632d5e8a294b" />
 
 <img width="1141" height="656" alt="image" src="https://github.com/user-attachments/assets/ca779951-177c-4b6e-a70e-0d51f31067df" />
+
+Các phần khác mọi người tự clone về xem nhé lười quá :v :v
