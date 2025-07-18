@@ -49,7 +49,7 @@ Trang chủ:
 <img width="1915" height="1011" alt="image" src="https://github.com/user-attachments/assets/79a3e5ff-b6a3-4051-8cdd-9dbbb0fce7a7" />
 
 Login:
-<img width="1919" height="1004" alt="image" src="https://github.com/user-attachments/assets/24030c87-2cc6-4146-988e-95c75023e9f7" />
+<img width="1916" height="1018" alt="image" src="https://github.com/user-attachments/assets/d8f44a66-d41a-4568-8207-7f2a6733a108" />
 
 trang chủ ( sau khi đã đăng nhập ):
 <img width="1919" height="960" alt="image" src="https://github.com/user-attachments/assets/3e84a113-892f-44ce-adef-8b88d0486d25" />
