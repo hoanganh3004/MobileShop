@@ -1,93 +1,116 @@
-Đây là một sản phẩm viết về web mua bán điện thoại (MobileShop)
+# 💻 Web Mua Bán Điện Thoại (MobileShop)
 
-Được làm bằng servlet-jsp 
+> Được phát triển bằng **Servlet - JSP**
 
-Cần được giải đáp có thể liên hệ qua - gmail : Hoanganhhy3004@gmail.com
-									 - Fb: https://www.facebook.com/hoang.anh.373679
+---
 
-*CHỨC NĂNG CHO KHÁCH HÀNG:
-- Đăng nhập/ Đăng kí / Quên mật khẩu ( Yêu cầu mật khẩu mã hoá Bcrypt )
-  
-- Quản lý tài khoản (Cho phép KH có thể quản lý thông tin tài khoản của mình, cập nhật thông tin, đổi mật khẩu)
-  
-- Xem sản phẩm : + Hiển thị danh sách sản phẩm
-                 + Có thể tìm kiếm sản phẩm theo mã, tên, khoảng giá..
-                 + Có button cho phép xem chi tiết, thêm vào giỏ hàng.
-  
-- Giỏ hàng :  + Hiển thị các sản phẩm đã được thêm vào giỏ.
-              + Có button cho phép khách hàng đặt hàng. (Lưu ý: cần KH đăng nhập mới được đặt hàng)
-              + Phần đặt hàng thì sẽ có mail gửi về cho KH. Khi KH đặt hàng xong thì phải có thông báo cho admin và KH đặt hàng.
-  
-- Lịch sử :  + Cho phép KH có thể xem lại được lịch sử các đơn hàng của mình.
-             + Tìm kiếm lịch sử theo tên sản phẩm, khoảng ngày đặt hàng, trạng thái đơn hàng.
+📧 Cần được giải đáp có thể liên hệ:
 
-- Thông báo : + Hiển thị danh sách các thông báo của người dùng. (Ví dụ: mỗi khi đặt hàng thành công, khi admin cập nhật trạng thái đơn hàng)
+- **Gmail:** Hoanganhhy3004@gmail.com  
+- **Facebook:** [Hoang Anh](https://www.facebook.com/hoang.anh.373679)
 
+---
 
-* CHỨC NĂNG CHO QUẢN TRỊ:
-- Quản lý tài khoản KH : + Hiển thị danh sách tài khoản có trên hệ thống.
-  						 + Cho phép phân quyền cho tài khoản, cập nhật thông tin, đổi mật khẩu, khóa tài khoản.
+## ✨ CHỨC NĂNG CHO KHÁCH HÀNG
 
-- Quản lý sản phẩm :  + Hiển thị danh sách sản phẩm (có phân trang)
-					  +	Có thể tìm kiếm sản phẩm theo mã, tên, danh mục…
-					  +	Thêm mới sản phẩm
-					  +	Có button cho phép xem chi tiết.
-					  +	Có button xóa sản phẩm.
+- **Đăng nhập / Đăng ký / Quên mật khẩu**  
+  (Yêu cầu mật khẩu mã hóa bằng Bcrypt)
 
-- Quản lý danh mục sản phẩm : + Thêm, sửa xóa và tìm kiếm danh mục sản phẩm.
-- Quản lý đơn hàng :  + Hiển thị danh sách các đơn hàng.
-					  +	Có button tìm kiếm (tìm theo KH đặt, ngày đặt…)
-					  +	Xem chi tiết đơn hàng.
-					  +	Cập nhật trạng thái đơn hàng (với trường hợp hủy đơn hàng thì có input nhập lý do hủy)
-					  +	Khi người quản trị cập nhật trạng trạng thái đơn hàng thì cần có thông báo cho user.
-					  +	Có chức năng tạo đơn hàng.
-- Thông báo : + Hiển thị danh sách các thông báo
-			  +	Có chức năng tìm kiếm
-			  +	Có chức năng tạo thông báo.
+- **Quản lý tài khoản**  
+  → Cho phép khách hàng quản lý thông tin tài khoản, cập nhật thông tin, đổi mật khẩu.
 
-Trang chủ:                                    
-<img width="1915" height="1011" alt="image" src="https://github.com/user-attachments/assets/79a3e5ff-b6a3-4051-8cdd-9dbbb0fce7a7" />
+- **Xem sản phẩm**  
+  + Hiển thị danh sách sản phẩm  
+  + Tìm kiếm theo mã, tên, khoảng giá  
+  + Xem chi tiết sản phẩm, thêm vào giỏ hàng
 
-Login:
-<img width="1916" height="1018" alt="image" src="https://github.com/user-attachments/assets/d8f44a66-d41a-4568-8207-7f2a6733a108" />
+- **Giỏ hàng**  
+  + Hiển thị các sản phẩm đã thêm vào giỏ  
+  + Đặt hàng (cần đăng nhập mới đặt được)  
+  + Sau khi đặt hàng, hệ thống sẽ gửi mail cho khách hàng, đồng thời thông báo đến admin
 
-trang chủ ( sau khi đã đăng nhập ):
-<img width="1919" height="960" alt="image" src="https://github.com/user-attachments/assets/3e84a113-892f-44ce-adef-8b88d0486d25" />
+- **Lịch sử đặt hàng**  
+  + Xem lại các đơn hàng đã đặt  
+  + Tìm kiếm theo tên sản phẩm, khoảng thời gian, trạng thái đơn hàng
 
-chi tiết sản phẩm :
-<img width="1919" height="1015" alt="image" src="https://github.com/user-attachments/assets/c5b95b0f-38c4-4cc3-9135-ec14474835f9" />
+- **Thông báo**  
+  + Hiển thị các thông báo liên quan (ví dụ: trạng thái đơn hàng sau khi admin cập nhật)
 
-<img width="1916" height="961" alt="image" src="https://github.com/user-attachments/assets/941eb002-b39a-4a4a-ad5d-e8d952756500" />
+---
 
-sau khi bấm thêm giỏ hàng :
-<img width="1919" height="1010" alt="image" src="https://github.com/user-attachments/assets/894cded5-da0d-4426-b0d3-ffc980d50f09" />
+## 🛠️ CHỨC NĂNG CHO QUẢN TRỊ (ADMIN)
 
-Lịch sử đặt hàng :
-<img width="1895" height="1003" alt="image" src="https://github.com/user-attachments/assets/04a90cf4-57bd-4a22-9855-cd65c41c2015" />
+- **Quản lý tài khoản khách hàng**  
+  + Xem danh sách tài khoản  
+  + Phân quyền, cập nhật thông tin, đổi mật khẩu, khóa tài khoản
 
-thông báo :
-<img width="1915" height="460" alt="image" src="https://github.com/user-attachments/assets/d9e58db8-cabc-46b8-87b8-8dfcf7f8b9d7" />
+- **Quản lý sản phẩm**  
+  + Danh sách sản phẩm (có phân trang)  
+  + Tìm kiếm theo mã, tên, danh mục  
+  + Thêm, sửa, xóa, xem chi tiết sản phẩm
 
-thông tin cá nhân :
-<img width="1918" height="1022" alt="image" src="https://github.com/user-attachments/assets/2619c01b-1a2e-4709-b046-c2c0b310cbca" />
+- **Quản lý danh mục sản phẩm**  
+  + Thêm, sửa, xóa, tìm kiếm danh mục
 
-* ADMIN :
-<img width="1919" height="1007" alt="image" src="https://github.com/user-attachments/assets/76cd6421-73b7-4232-8de9-08d0e561a3e2" />
+- **Quản lý đơn hàng**  
+  + Danh sách đơn hàng  
+  + Tìm kiếm theo người đặt, ngày đặt  
+  + Xem chi tiết, cập nhật trạng thái đơn hàng  
+  + Nhập lý do hủy nếu hủy đơn  
+  + Thông báo đến khách hàng khi có cập nhật  
+  + Tạo đơn hàng
 
-<img width="1898" height="1015" alt="image" src="https://github.com/user-attachments/assets/9f21dd5b-82cf-40b1-bfa5-f2dd86ba75ee" />
+- **Thông báo**  
+  + Hiển thị danh sách thông báo  
+  + Tìm kiếm, tạo mới thông báo
 
-<img width="1919" height="1013" alt="image" src="https://github.com/user-attachments/assets/155f5400-74b1-4c8d-9193-820423106024" />
+---
 
-<img width="1917" height="1007" alt="image" src="https://github.com/user-attachments/assets/1791b529-0480-4dbc-8e5d-4b293d4e7870" />
+## 🖼️ GIAO DIỆN DEMO
 
-<img width="1917" height="1003" alt="image" src="https://github.com/user-attachments/assets/424f42ad-76bc-417d-afd6-1c93a2691a6d" />
+### Trang chủ:
+![Trang chủ](https://github.com/user-attachments/assets/79a3e5ff-b6a3-4051-8cdd-9dbbb0fce7a7)
 
-<img width="1901" height="1014" alt="image" src="https://github.com/user-attachments/assets/914c6487-c494-4fcc-8d17-cd54835f214b" />
+### Login:
+![Login](https://github.com/user-attachments/assets/d8f44a66-d41a-4568-8207-7f2a6733a108)
 
-<img width="1910" height="1016" alt="image" src="https://github.com/user-attachments/assets/c863e46e-490e-40cf-9b45-198457ac2545" />
+### Trang chủ (sau khi đăng nhập):
+![Trang chủ đã đăng nhập](https://github.com/user-attachments/assets/3e84a113-892f-44ce-adef-8b88d0486d25)
 
-<img width="1919" height="1018" alt="image" src="https://github.com/user-attachments/assets/ca735d4e-25ed-489c-a6c6-632d5e8a294b" />
+### Chi tiết sản phẩm:
+![Chi tiết sản phẩm](https://github.com/user-attachments/assets/c5b95b0f-38c4-4cc3-9135-ec14474835f9)
+![Chi tiết sản phẩm 2](https://github.com/user-attachments/assets/941eb002-b39a-4a4a-ad5d-e8d952756500)
 
-<img width="1141" height="656" alt="image" src="https://github.com/user-attachments/assets/ca779951-177c-4b6e-a70e-0d51f31067df" />
+### Sau khi thêm vào giỏ hàng:
+![Thêm vào giỏ hàng](https://github.com/user-attachments/assets/894cded5-da0d-4426-b0d3-ffc980d50f09)
 
-Các phần khác mọi người tự clone về xem nhé lười quá :v :v
+### Lịch sử đặt hàng:
+![Lịch sử](https://github.com/user-attachments/assets/04a90cf4-57bd-4a22-9855-cd65c41c2015)
+
+### Thông báo:
+![Thông báo](https://github.com/user-attachments/assets/d9e58db8-cabc-46b8-87b8-8dfcf7f8b9d7)
+
+### Thông tin cá nhân:
+![Thông tin cá nhân](https://github.com/user-attachments/assets/2619c01b-1a2e-4709-b046-c2c0b310cbca)
+
+---
+
+## 👑 GIAO DIỆN ADMIN
+
+![Admin 1](https://github.com/user-attachments/assets/76cd6421-73b7-4232-8de9-08d0e561a3e2)  
+![Admin 2](https://github.com/user-attachments/assets/9f21dd5b-82cf-40b1-bfa5-f2dd86ba75ee)  
+![Admin 3](https://github.com/user-attachments/assets/155f5400-74b1-4c8d-9193-820423106024)  
+![Admin 4](https://github.com/user-attachments/assets/1791b529-0480-4dbc-8e5d-4b293d4e7870)  
+![Admin 5](https://github.com/user-attachments/assets/424f42ad-76bc-417d-afd6-1c93a2691a6d)  
+![Admin 6](https://github.com/user-attachments/assets/914c6487-c494-4fcc-8d17-cd54835f214b)  
+![Admin 7](https://github.com/user-attachments/assets/c863e46e-490e-40cf-9b45-198457ac2545)  
+![Admin 8](https://github.com/user-attachments/assets/ca735d4e-25ed-489c-a6c6-632d5e8a294b)  
+![Admin 9](https://github.com/user-attachments/assets/ca779951-177c-4b6e-a70e-0d51f31067df)
+
+---
+
+## 🤝 Các phần còn lại mọi người tự clone về xem nhé 😄  
+(Lười quá :v :v)
+
+---
+
