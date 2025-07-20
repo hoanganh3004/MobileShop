@@ -9,6 +9,7 @@ import java.util.List;
 
 public class AdminAccountDAO {
 
+    // lấy tất cả tài khoản
     public List<Account> getAllAccounts() {
         List<Account> list = new ArrayList<>();
         String sql = "SELECT * FROM accounts";
@@ -36,6 +37,7 @@ public class AdminAccountDAO {
         return list;
     }
 
+    // lấy tài khoản theo id
     public Account getAccountById(int id) {
         String sql = "SELECT * FROM accounts WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
@@ -64,6 +66,7 @@ public class AdminAccountDAO {
         return null;
     }
 
+    // cập nhật vai trò
     public boolean updateRole(int id, String role) {
         String sql = "UPDATE accounts SET role = ? WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
@@ -77,6 +80,7 @@ public class AdminAccountDAO {
         return false;
     }
 
+    // chuyển đổi trạng thái
     public boolean toggleStatus(int id) {
         String sql = "UPDATE accounts SET status = CASE WHEN status = 1 THEN 0 ELSE 1 END WHERE id = ?"; // Sửa logic toggle
         try (Connection conn = new DBcontext().getConnection();
@@ -89,6 +93,7 @@ public class AdminAccountDAO {
         return false;
     }
 
+    //cập nhật thông tin tài khoản
     public boolean updateAccount(Account acc) {
         String sql = "UPDATE accounts SET full_name=?, email=?, phone=?, address=? WHERE id=?";
         try (Connection conn = new DBcontext().getConnection();
@@ -105,6 +110,7 @@ public class AdminAccountDAO {
         return false;
     }
 
+    //xóa tài khoản theo id
     public boolean deleteAccount(int id) {
         String sql = "DELETE FROM accounts WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
@@ -117,8 +123,8 @@ public class AdminAccountDAO {
         return false;
     }
 
-    public boolean updatePassword(int id, String newPassword) {
-        String hashedPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+    //cập nhật mật khẩu của tài khoản
+    public boolean updatePassword(int id, String hashedPassword) {
         String sql = "UPDATE accounts SET password = ? WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -131,6 +137,8 @@ public class AdminAccountDAO {
         return false;
     }
 
+
+    //lấy tất cả tài khoản có vai trò
     public List<Account> getAllUsers() {
         List<Account> list = new ArrayList<>();
         String sql = "SELECT * FROM accounts WHERE role = 'user'";

@@ -10,7 +10,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Checkout</title>
+    <title>MobileShop-Giỏ hàng</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,500,700" rel="stylesheet">
     <link rel="stylesheet" href="<%= request.getContextPath() %>/css/bootstrap.min.css"/>

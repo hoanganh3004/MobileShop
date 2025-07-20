@@ -32,8 +32,7 @@
   <table class="table table-bordered">
     <thead class="thead-light">
     <tr>
-      <th>ID</th>
-      <th>Người nhận</th> <!-- Đổi từ 'User ID' thành 'Người nhận' -->
+      <th>Người nhận</th>
       <th>Nội dung</th>
       <th>Ngày tạo</th>
       <th>Đã đọc</th>
@@ -42,8 +41,7 @@
     <tbody>
     <c:forEach var="n" items="${notificationList}">
       <tr>
-        <td>${n.id}</td>
-        <td>${n.fullName}</td> <!-- ✅ Hiển thị tên đầy đủ -->
+        <td>${n.fullName}</td>
         <td>${n.message}</td>
         <td>${n.createdAt}</td>
         <td>

@@ -11,6 +11,7 @@ import java.util.List;
 
 public class AccountDAO {
 
+    //lấy thông tin tài khoản theo id
     public Account getAccountById(int id) {
         String sql = "SELECT * FROM accounts WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
@@ -43,6 +44,7 @@ public class AccountDAO {
         return null;
     }
 
+    //cập nhật thông tin tài khoản
     public boolean updateAccountInfo(Account acc) {
         String sql = "UPDATE accounts SET full_name = ?, email = ?, phone = ?, address = ? WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
@@ -59,6 +61,7 @@ public class AccountDAO {
         return false;
     }
 
+    //cập nhật mật khẩu của tài khoản dựa trên id
     public boolean updatePassword(int id, String hashedPassword) {
         String sql = "UPDATE accounts SET password = ? WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
@@ -72,18 +75,7 @@ public class AccountDAO {
         return false;
     }
 
-    public boolean deactivateAccount(int id) {
-        String sql = "UPDATE accounts SET status = 0 WHERE id = ?"; // Sửa thành status = 0 thay vì active
-        try (Connection conn = new DBcontext().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
+    //lấy tất cả tài khoản
     public List<Account> getAllAccounts() {
         List<Account> list = new ArrayList<>();
         String sql = "SELECT * FROM accounts ORDER BY id ASC";
@@ -113,6 +105,7 @@ public class AccountDAO {
         return list;
     }
 
+    //lấy tài khoản theo username
     public Account getAccountByUsername(String username) {
         String sql = "SELECT * FROM accounts WHERE username = ?";
         try (Connection conn = new DBcontext().getConnection();
@@ -141,14 +134,15 @@ public class AccountDAO {
     }
 
     // Thêm phương thức hỗ trợ
-    public String getUserCodeById(int userId) {
+    public String getUserCodeById(int id) {
         String sql = "SELECT code FROM accounts WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, userId);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getString("code");
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("code");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();

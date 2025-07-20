@@ -9,7 +9,7 @@ import java.util.List;
 
 public class AdminNotificationDAO {
 
-    // ✅ Tìm kiếm thông báo theo keyword (JOIN để lấy full_name từ accounts)
+    //  Tìm kiếm thông báo theo keyword (JOIN để lấy full_name từ accounts)
     public List<Notification> searchNotifications(String keyword) {
         List<Notification> list = new ArrayList<>();
         String sql = "SELECT n.*, a.full_name FROM notifications n " +
@@ -19,7 +19,7 @@ public class AdminNotificationDAO {
             sql += "WHERE n.message LIKE ? ";
         }
 
-        sql += "ORDER BY n.created_at ASC";
+        sql += "ORDER BY n.created_at DESC";
 
         try (Connection conn = new DBcontext().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -45,7 +45,7 @@ public class AdminNotificationDAO {
         return list;
     }
 
-    // ✅ Thêm thông báo mới (dùng user_code kiểu String)
+    //  Thêm thông báo mới (dùng user_code kiểu String)
     public void insertNotification(String userCode, String message) {
         String sql = "INSERT INTO notifications (user_code, message, created_at, is_read) VALUES (?, ?, NOW(), 0)";
         try (Connection conn = new DBcontext().getConnection();
@@ -58,7 +58,7 @@ public class AdminNotificationDAO {
         }
     }
 
-    // ✅ Lấy danh sách thông báo mới nhất của user (dựa theo user_code)
+    //  Lấy danh sách thông báo mới nhất của user (dựa theo user_code)
     public List<Notification> getUnreadNotificationsByUser(String userCode) {
         List<Notification> list = new ArrayList<>();
         String sql = "SELECT * FROM notifications WHERE user_code = ? ORDER BY created_at DESC";

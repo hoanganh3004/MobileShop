@@ -335,8 +335,25 @@ public class UserService {
             address = acc.getAddress();
         }
 
-        // Sử dụng userCode thay vì userId
-        String userCode = accountDAO.getUserCodeById(acc.getId());
+        // Thêm try-catch cho accountDAO.getUserCodeById
+        String userCode = null;
+        try {
+            userCode = accountDAO.getUserCodeById(acc.getId());
+        } catch (Exception e) {
+            System.err.println("Lỗi khi lấy userCode từ accountDAO: " + e.getMessage());
+            e.printStackTrace();
+            session.setAttribute("flash", "Lỗi khi lấy thông tin người dùng. Vui lòng thử lại!");
+            response.sendRedirect("home");
+            return;
+        }
+
+        if (userCode == null) {
+            System.err.println("Không tìm thấy userCode cho ID: " + acc.getId());
+            session.setAttribute("flash", "Không tìm thấy mã người dùng. Vui lòng kiểm tra lại!");
+            response.sendRedirect("home");
+            return;
+        }
+
         boolean success = adminOrderDAO.createOrder(userCode, name, email, phone, address, cartItems, total);
 
         if (success) {

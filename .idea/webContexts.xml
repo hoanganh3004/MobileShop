@@ -6,6 +6,7 @@
         <entry key="file://$PROJECT_DIR$/src/main/webapp/view/ad.jsp" value="file://$PROJECT_DIR$/src/main/webapp/view" />
         <entry key="file://$PROJECT_DIR$/src/main/webapp/view/ad/addProduct.jsp" value="file://$PROJECT_DIR$/src/main/webapp/view/ad" />
         <entry key="file://$PROJECT_DIR$/src/main/webapp/view/ad/admin-header.jsp" value="file://$PROJECT_DIR$/src/main/webapp/view/ad" />
+        <entry key="file://$PROJECT_DIR$/src/main/webapp/view/ad/admin-notification.jsp" value="file://$PROJECT_DIR$/src/main/webapp/view/ad" />
         <entry key="file://$PROJECT_DIR$/src/main/webapp/view/ad/editProducts.jsp" value="file://$PROJECT_DIR$/src/main/webapp/view/ad" />
         <entry key="file://$PROJECT_DIR$/src/main/webapp/view/header.jsp" value="file://$PROJECT_DIR$/src/main/webapp/view" />
         <entry key="file://$PROJECT_DIR$/src/main/webapp/view/home.jsp" value="file://$PROJECT_DIR$/src/main/webapp/view" />

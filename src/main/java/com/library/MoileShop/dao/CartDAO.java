@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 
 public class CartDAO {
 
+    // đếm tổng số lượng sản phẩm trong giỏ hàng
     public int countItemsByUser(String userCode) {
         String sql = "SELECT SUM(quantity) FROM cart_items WHERE user_code = ?";
         try (Connection conn = new DBcontext().getConnection();

@@ -9,7 +9,7 @@ import java.util.List;
 
 public class AdminCategoryDAO {
 
-    // ✅ Tìm kiếm danh mục theo keyword
+    //  Tìm kiếm danh mục theo keyword
     public List<Category> getAll(String keyword) {
         List<Category> list = new ArrayList<>();
         String sql = "SELECT * FROM categories WHERE name LIKE ? OR description LIKE ?";
@@ -32,7 +32,7 @@ public class AdminCategoryDAO {
         return list;
     }
 
-    // ✅ Lấy danh mục theo ID
+    //  Lấy danh mục theo ID
     public Category getById(int cid) {
         String sql = "SELECT * FROM categories WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
@@ -53,7 +53,7 @@ public class AdminCategoryDAO {
     }
 
 
-    // ✅ Thêm danh mục mới
+    //  Thêm danh mục mới
     public boolean addCategory(Category c) {
         String sql = "INSERT INTO categories (name, description) VALUES (?, ?)";
         try (Connection conn = new DBcontext().getConnection();
@@ -67,7 +67,7 @@ public class AdminCategoryDAO {
         return false;
     }
 
-    // ✅ Cập nhật danh mục
+    //  Cập nhật danh mục
     public boolean updateCategory(Category c) {
         String sql = "UPDATE categories SET name = ?, description = ? WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
@@ -82,7 +82,7 @@ public class AdminCategoryDAO {
         return false;
     }
 
-    // ✅ Xóa danh mục
+    //  Xóa danh mục
     public boolean deleteCategory(int cid) {
         String sql = "DELETE FROM categories WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
@@ -95,7 +95,7 @@ public class AdminCategoryDAO {
         return false;
     }
 
-    // ✅ Lấy toàn bộ danh mục để hiển thị ở menu header
+    //  Lấy toàn bộ danh mục để hiển thị ở menu header
     public List<Category> getAllCategories() {
         List<Category> list = new ArrayList<>();
         String sql = "SELECT * FROM categories";

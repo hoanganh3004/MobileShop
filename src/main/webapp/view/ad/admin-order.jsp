@@ -19,7 +19,6 @@
   <table class="table table-bordered shadow-sm">
     <thead class="thead-light">
     <tr>
-      <th>ID</th>
       <th>Khách hàng</th>
       <th>Ngày đặt</th>
       <th>Tổng tiền</th>
@@ -30,7 +29,6 @@
     <tbody>
     <c:forEach var="o" items="${orderList}">
       <tr>
-        <td>${o.id}</td>
         <td>${o.customer.fullName}</td>
         <td>${o.orderDate}</td>
         <td><fmt:formatNumber value="${o.total}" type="number" maxFractionDigits="0"/> $</td>

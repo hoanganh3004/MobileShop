@@ -449,7 +449,6 @@ public class AdminService {
     }
 
     // Xử lý sửa sản phẩm
-    // Xử lý sửa sản phẩm
     public void handleEditProduct(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
@@ -668,6 +667,7 @@ public class AdminService {
 
         try {
             int orderId = Integer.parseInt(orderIdRaw);
+            // Gọi lại để lấy đầy đủ order + customer + code
             Order order = orderDAO.getOrderById(orderId);
             if (order == null) {
                 response.sendRedirect("admin-order?error=notfound");
@@ -677,6 +677,10 @@ public class AdminService {
             boolean updated = orderDAO.updateOrderStatus(orderId, status, cancelReason);
 
             if (updated) {
+                // Lấy lại userCode từ order (đã fix ở getOrderById)
+                String userCode = (order.getCustomer() != null) ? order.getCustomer().getCode() : null;
+
+                // Tạo nội dung thông báo
                 String message;
                 switch (status) {
                     case "Đang giao":
@@ -691,8 +695,12 @@ public class AdminService {
                     default:
                         message = "Trạng thái đơn hàng #" + orderId + " đã được cập nhật.";
                 }
-                String userCode = accountDAO.getUserCodeById(order.getCustomer().getId());
-                orderDAO.notifyUser(userCode, message);
+                
+                if (userCode != null && !userCode.isEmpty()) {
+                    orderDAO.notifyUser(userCode, message);
+                } else {
+                    System.err.println(" userCode bị null => Không gửi được thông báo.");
+                }
             }
 
             response.sendRedirect("admin-order");
@@ -701,6 +709,7 @@ public class AdminService {
             response.sendRedirect("admin-order?error=invalid");
         }
     }
+
 
     private void showAlert(HttpServletResponse response, String message) throws IOException {
         PrintWriter out = response.getWriter();

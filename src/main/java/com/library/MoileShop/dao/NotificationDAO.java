@@ -11,6 +11,7 @@ public class NotificationDAO {
 
     private final DBcontext db = new DBcontext();
 
+    // lấy tất cả thông báo
     public List<Notification> getAllByUser(String userCode) {
         List<Notification> list = new ArrayList<>();
         String sql = "SELECT * FROM notifications WHERE user_code = ? ORDER BY created_at DESC";
@@ -34,6 +35,7 @@ public class NotificationDAO {
         return list;
     }
 
+    //đếm số thông báo chưa đọc
     public int countUnread(String userCode) { // Sửa từ int userId thành String userCode
         String sql = "SELECT COUNT(*) FROM notifications WHERE user_code = ? AND is_read = false";
         try (Connection conn = db.getConnection();
@@ -49,6 +51,7 @@ public class NotificationDAO {
         return 0;
     }
 
+    // đánh dấu thông báo là đã đọc
     public void markAsRead(int notificationId) {
         String sql = "UPDATE notifications SET is_read = true WHERE id = ?";
         try (Connection conn = db.getConnection();
@@ -60,26 +63,4 @@ public class NotificationDAO {
         }
     }
 
-    public void markAllAsRead(String userCode) {
-        String sql = "UPDATE notifications SET is_read = true WHERE user_code = ?";
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, userCode);
-            ps.executeUpdate();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void addNotification(String userCode, String message) {
-        String sql = "INSERT INTO notifications (user_code, message, created_at, is_read) VALUES (?, ?, NOW(), false)";
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, userCode);
-            ps.setString(2, message);
-            ps.executeUpdate();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }
