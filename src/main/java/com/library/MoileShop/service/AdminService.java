@@ -6,12 +6,7 @@ import com.library.MoileShop.dao.AdminProductDAO;
 import com.library.MoileShop.dao.AdminCategoryDAO;
 import com.library.MoileShop.dao.AdminNotificationDAO;
 import com.library.MoileShop.dao.AccountDAO;
-import com.library.MoileShop.entity.Account;
-import com.library.MoileShop.entity.Order;
-import com.library.MoileShop.entity.OrderItem;
-import com.library.MoileShop.entity.Product;
-import com.library.MoileShop.entity.Category;
-import com.library.MoileShop.entity.Notification;
+import com.library.MoileShop.entity.*;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
 import java.io.*;
@@ -38,54 +33,19 @@ public class AdminService {
         this.accountDAO = new AccountDAO();
     }
 
-    // Xử lý tìm kiếm đơn hàng
+    // Xử lý tìm kiếm đơn hàng (có thêm lọc trạng thái)
     public void handleSearchOrders(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
         String customerName = request.getParameter("customer");
         String orderDate = request.getParameter("orderDate");
+        String status = request.getParameter("status"); // <- Lấy trạng thái
 
         if (customerName == null) customerName = "";
         if (orderDate != null && orderDate.trim().isEmpty()) orderDate = null;
+        if (status != null && status.trim().isEmpty()) status = null;
 
-        List<Order> orderList = orderDAO.searchOrders(customerName, orderDate);
-        request.setAttribute("orderList", orderList);
-        request.getRequestDispatcher("view/ad/admin-order.jsp").forward(request, response);
-    }
-
-    // Xử lý danh sách tài khoản
-    public void handleGetAllAccounts(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        List<Account> list = accDAO.getAllAccounts();
-        request.setAttribute("accountList", list);
-        request.getRequestDispatcher("/view/ad/admin-account.jsp").forward(request, response);
-    }
-
-    // Xử lý danh sách danh mục
-    public void handleGetAllCategories(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String keyword = request.getParameter("keyword");
-        if (keyword == null) keyword = "";
-
-        List<Category> list = categoryDAO.getAll(keyword);
-        request.setAttribute("categoryList", list);
-        request.getRequestDispatcher("/view/ad/admin-category.jsp").forward(request, response);
-    }
-
-    // Xử lý danh sách thông báo
-    public void handleSearchNotifications(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String keyword = request.getParameter("keyword");
-        List<Notification> list = notificationDAO.searchNotifications(keyword);
-        request.setAttribute("notificationList", list);
-        request.getRequestDispatcher("view/ad/admin-notification.jsp").forward(request, response);
-    }
-
-    // Xử lý danh sách sản phẩm
-    public void handleSearchProducts(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String keyword = request.getParameter("keyword");
-        if (keyword == null) keyword = "";
-
+        // Phân trang
         int page = 1;
         int size = 5;
         try {
@@ -95,17 +55,138 @@ public class AdminService {
             }
         } catch (NumberFormatException ignored) {}
 
-        int total = productDAO.countProducts(keyword);
+        // Tổng số đơn phù hợp
+        int total = orderDAO.countOrders(customerName, orderDate, status);
         int totalPage = (int) Math.ceil(total * 1.0 / size);
         int offset = (page - 1) * size;
 
-        List<Product> productList = productDAO.search(keyword, offset, size);
-        request.setAttribute("productList", productList);
+        // Lấy danh sách đơn phù hợp
+        List<Order> orderList = orderDAO.searchOrders(customerName, orderDate, status, offset, size);
+
+        // Đưa dữ liệu về JSP
+        request.setAttribute("orderList", orderList);
+        request.setAttribute("totalPage", totalPage);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("customer", customerName);
+        request.setAttribute("orderDate", orderDate);
+        request.setAttribute("status", status);
+        request.setAttribute("pageSize", size);
+        request.getRequestDispatcher("view/ad/adminOrder.jsp").forward(request, response);
+    }
+
+
+    // Xử lý danh sách tài khoản
+    public void handleGetAllAccounts(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        List<Account> list = accDAO.getAllAccounts();
+        request.setAttribute("accountList", list);
+        request.getRequestDispatcher("/view/ad/adminAccount.jsp").forward(request, response);
+    }
+
+    // Xử lý danh sách danh mục
+    public void handleGetAllCategories(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String keyword = request.getParameter("keyword");
+        if (keyword == null) keyword = "";
+
+        int page = 1;
+        int size = 5;
+
+        try {
+            String pageParam = request.getParameter("page");
+            if (pageParam != null) {
+                page = Integer.parseInt(pageParam);
+            }
+        } catch (NumberFormatException ignored) {}
+
+        int total = categoryDAO.count(keyword); //
+        int totalPage = (int) Math.ceil(total * 1.0 / size);
+        int offset = (page - 1) * size;
+
+        List<Category> list = categoryDAO.search(keyword, offset, size);
+
+        request.setAttribute("categoryList", list);
+        request.setAttribute("totalPage", totalPage);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("pageSize", size);
+        request.setAttribute("keyword", keyword);
+
+        request.getRequestDispatcher("/view/ad/adminCategory.jsp").forward(request, response);
+    }
+
+
+    // Xử lý danh sách thông báo
+    public void handleSearchNotifications(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String keyword = request.getParameter("keyword");
+        if (keyword == null) keyword = "";
+
+        // Thiết lập phân trang
+        int page = 1;
+        int size = 5; // Số thông báo mỗi trang
+        try {
+            String pageParam = request.getParameter("page");
+            if (pageParam != null) {
+                page = Integer.parseInt(pageParam);
+            }
+        } catch (NumberFormatException ignored) {}
+
+        // Xử lý logic phân trang
+        int total = notificationDAO.countNotifications(keyword);
+        int totalPage = (int) Math.ceil(total * 1.0 / size);
+        int offset = (page - 1) * size;
+
+        List<Notification> list = notificationDAO.searchNotifications(keyword, offset, size);
+        request.setAttribute("notificationList", list);
         request.setAttribute("totalPage", totalPage);
         request.setAttribute("currentPage", page);
         request.setAttribute("keyword", keyword);
-        request.getRequestDispatcher("/view/ad/admin-product.jsp").forward(request, response);
+        request.setAttribute("pageSize", size);
+        request.getRequestDispatcher("view/ad/adminNotification.jsp").forward(request, response);
     }
+
+    public void handleDashboardStatistics(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int totalOrders = orderDAO.countOrders(null, null);
+        int totalProducts = productDAO.countProducts("");
+        int totalUsers = accDAO.getAllUsers().size();
+        int totalNotifications = notificationDAO.countNotifications("");
+
+        request.setAttribute("totalOrders", totalOrders);
+        request.setAttribute("totalProducts", totalProducts);
+        request.setAttribute("totalUsers", totalUsers);
+        request.setAttribute("totalNotifications", totalNotifications);
+
+        request.getRequestDispatcher("view/ad/admin.jsp").forward(request, response);
+    }
+
+    // Xử lý danh sách sản phẩm
+        public void handleSearchProducts(HttpServletRequest request, HttpServletResponse response)
+                throws ServletException, IOException {
+            String keyword = request.getParameter("keyword");
+            if (keyword == null) keyword = "";
+
+            int page = 1;
+            int size = 5;
+            try {
+                String pageParam = request.getParameter("page");
+                if (pageParam != null) {
+                    page = Integer.parseInt(pageParam);
+                }
+            } catch (NumberFormatException ignored) {}
+
+            int total = productDAO.countProducts(keyword);
+            int totalPage = (int) Math.ceil(total * 1.0 / size);
+            int offset = (page - 1) * size;
+
+            List<Product> productList = productDAO.search(keyword, offset, size);
+            request.setAttribute("productList", productList);
+            request.setAttribute("totalPage", totalPage);
+            request.setAttribute("currentPage", page);
+            request.setAttribute("keyword", keyword);
+            request.setAttribute("pageSize", size);
+            request.getRequestDispatcher("/view/ad/adminProduct.jsp").forward(request, response);
+        }
 
     // Xử lý thêm sản phẩm
     public void handleAddProduct(HttpServletRequest request, HttpServletResponse response)
@@ -180,6 +261,8 @@ public class AdminService {
     public List<Category> getAllCategories() {
         return categoryDAO.getAll(""); // Truyền keyword rỗng để lấy tất cả
     }
+
+
     // Xử lý thêm danh mục
     public void handleAddCategory(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -286,7 +369,14 @@ public class AdminService {
         response.setContentType("text/html;charset=UTF-8");
 
         try {
-            int userId = Integer.parseInt(request.getParameter("userId"));
+            String userIdParam = request.getParameter("userId");
+            String userCode = null;
+
+            if (userIdParam != null && !userIdParam.trim().isEmpty()) {
+                int userId = Integer.parseInt(userIdParam);
+                userCode = accountDAO.getUserCodeById(userId);
+            }
+
             String[] productIds = request.getParameterValues("productIds");
             String[] quantities = request.getParameterValues("quantities");
 
@@ -295,18 +385,34 @@ public class AdminService {
                 return;
             }
 
-            List<Integer> selectedIds = new ArrayList<>();
-            List<Integer> selectedQtys = new ArrayList<>();
-
+            List<CartItem> cartItems = new ArrayList<>();
             for (int i = 0; i < productIds.length; i++) {
-                int id = Integer.parseInt(productIds[i]);
+                int productId = Integer.parseInt(productIds[i]);
                 int qty = Integer.parseInt(quantities[i]);
-                selectedIds.add(id);
-                selectedQtys.add(qty);
+                Product p = productDAO.getProductById(productId);
+                cartItems.add(new CartItem(p, qty));
             }
 
-            String userCode = accountDAO.getUserCodeById(userId);
-            boolean success = orderDAO.createOrder(userCode, selectedIds, selectedQtys);
+            // Lấy thông tin người nhận
+            String name = request.getParameter("recipientName");
+            String email = request.getParameter("recipientEmail");
+            String phone = request.getParameter("recipientPhone");
+            String address = request.getParameter("recipientAddress");
+
+            if (name == null || phone == null || address == null ||
+                    name.trim().isEmpty() || phone.trim().isEmpty() || address.trim().isEmpty()) {
+                showAlert(response, "Vui lòng nhập đầy đủ thông tin người nhận.");
+                return;
+            }
+
+            // Tính tổng giá
+            double total = 0;
+            for (CartItem item : cartItems) {
+                total += item.getProduct().getPrice() * item.getQuantity();
+            }
+
+            boolean success = orderDAO.createOrder(userCode, name, email, phone, address, cartItems, total);
+
             if (success) {
                 response.sendRedirect("admin-order");
             } else {
@@ -317,6 +423,7 @@ public class AdminService {
             showAlert(response, "Lỗi xử lý đơn hàng.");
         }
     }
+
 
     // Hiển thị form tạo đơn hàng
     public void handleCreateOrderForm(HttpServletRequest request, HttpServletResponse response)
@@ -341,9 +448,9 @@ public class AdminService {
             boolean isAjax = "XMLHttpRequest".equals(requestedWith);
 
             if (isAjax) {
-                request.getRequestDispatcher("/view/ad/create-order.jsp").forward(request, response);
+                request.getRequestDispatcher("/view/ad/createOrder.jsp").forward(request, response);
             } else {
-                request.getRequestDispatcher("/view/ad/admin-order.jsp").forward(request, response);
+                request.getRequestDispatcher("/view/ad/adminOrder.jsp").forward(request, response);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -413,7 +520,7 @@ public class AdminService {
 
             request.setAttribute("order", order);
             request.setAttribute("items", items);
-            request.getRequestDispatcher("view/ad/order-detail.jsp").forward(request, response);
+            request.getRequestDispatcher("view/ad/orderDetail.jsp").forward(request, response);
         } catch (Exception e) {
             e.printStackTrace();
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Server error");

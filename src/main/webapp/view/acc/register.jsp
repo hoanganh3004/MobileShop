@@ -144,14 +144,7 @@
                                     </button>
 
                                     <hr>
-                                    <a href="#" class="btn btn-google btn-user btn-block">
-                                        <i class="fab fa-google fa-fw"></i> Đăng ký bằng Google
-                                    </a>
-                                    <a href="#" class="btn btn-facebook btn-user btn-block">
-                                        <i class="fab fa-facebook-f fa-fw"></i> Đăng ký bằng Facebook
-                                    </a>
                                 </form>
-                                <hr>
                                 <div class="text-center">
                                     <a class="small" href="${pageContext.request.contextPath}/forgot-password">Quên mật khẩu?</a>
                                 </div>

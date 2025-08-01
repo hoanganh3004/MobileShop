@@ -21,8 +21,8 @@ public class AdminCategoryDAO {
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 Category c = new Category();
-                c.setCid(rs.getInt("id"));                  // ✅ đúng cột
-                c.setCname(rs.getString("name"));           // ✅ đúng cột
+                c.setCid(rs.getInt("id"));
+                c.setCname(rs.getString("name"));
                 c.setDescription(rs.getString("description"));
                 list.add(c);
             }
@@ -82,6 +82,45 @@ public class AdminCategoryDAO {
         return false;
     }
 
+    public int count(String keyword) {
+        String sql = "SELECT COUNT(*) FROM categories WHERE name LIKE ? OR description LIKE ?";
+        try (Connection conn = new DBcontext().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            String kw = "%" + keyword + "%";
+            ps.setString(1, kw);
+            ps.setString(2, kw);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    // 🔎 Lấy danh mục theo keyword + phân trang
+    public List<Category> search(String keyword, int offset, int limit) {
+        List<Category> list = new ArrayList<>();
+        String sql = "SELECT * FROM categories WHERE name LIKE ? OR description LIKE ? ORDER BY id ASC LIMIT ? OFFSET ?";
+        try (Connection conn = new DBcontext().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            String kw = "%" + keyword + "%";
+            ps.setString(1, kw);
+            ps.setString(2, kw);
+            ps.setInt(3, limit);
+            ps.setInt(4, offset);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Category c = new Category();
+                c.setCid(rs.getInt("id"));
+                c.setCname(rs.getString("name"));
+                c.setDescription(rs.getString("description"));
+                list.add(c);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
     //  Xóa danh mục
     public boolean deleteCategory(int cid) {
         String sql = "DELETE FROM categories WHERE id = ?";

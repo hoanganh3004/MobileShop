@@ -23,6 +23,7 @@ public class Notification {
     }
 
     // Getters và Setters
+
     public int getId() {
         return id;
     }
@@ -70,4 +71,17 @@ public class Notification {
     public void setRead(boolean read) {
         isRead = read;
     }
+
+    @Override
+    public String toString() {
+        return "Notification{" +
+                "id=" + id +
+                ", user_code='" + user_code + '\'' +
+                ", fullName='" + fullName + '\'' +
+                ", message='" + message + '\'' +
+                ", createdAt=" + createdAt +
+                ", isRead=" + isRead +
+                '}';
+    }
+
 }

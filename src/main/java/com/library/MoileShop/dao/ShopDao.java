@@ -172,11 +172,11 @@ public class ShopDao {
         try (Connection conn = new DBcontext().getConnection();
              PreparedStatement ps = conn.prepareStatement(query)) {
 
-            String hashedPassword = BCrypt.hashpw(acc.getPassword(), BCrypt.gensalt());
+
 
             ps.setString(1, acc.getCode());
             ps.setString(2, acc.getUsername());
-            ps.setString(3, hashedPassword);
+            ps.setString(3, acc.getPassword());
             ps.setString(4, acc.getFullName());
             ps.setString(5, acc.getEmail());
             ps.setString(6, acc.getPhone());

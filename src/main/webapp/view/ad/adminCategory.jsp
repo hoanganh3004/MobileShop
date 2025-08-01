@@ -1,6 +1,6 @@
 <%@ page contentType="text/html; charset=UTF-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
-<%@ include file="admin-header.jsp" %>
+<%@ include file="adminHeader.jsp" %>
 
 <h1 class="h3 mb-4 text-gray-800">📦 Quản lý danh mục sản phẩm</h1>
 
@@ -18,14 +18,17 @@
   <table class="table table-bordered">
     <thead class="thead-light">
     <tr>
+      <th>STT</th>
       <th>Tên danh mục</th>
       <th>Mô tả</th>
       <th>Hành động</th>
     </tr>
     </thead>
     <tbody>
-    <c:forEach var="c" items="${categoryList}">
+    <c:set var="startIndex" value="${(currentPage - 1) * pageSize}" />
+    <c:forEach var="c" items="${categoryList}" varStatus="loop">
       <tr>
+        <td>${startIndex + loop.index + 1}</td>
         <td>${c.cname}</td>
         <td>${c.description}</td>
         <td>
@@ -46,18 +49,14 @@
 <!-- Modal Thêm -->
 <div class="modal fade" id="addCategoryModal" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-dialog-centered modal-md" role="document">
-    <div class="modal-content" id="addCategoryContent">
-
-    </div>
+    <div class="modal-content" id="addCategoryContent"></div>
   </div>
 </div>
 
 <!-- Modal Sửa -->
 <div class="modal fade" id="editCategoryModal" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-dialog-centered modal-md" role="document">
-    <div class="modal-content" id="editCategoryContent">
-      <!-- AJAX sẽ chèn nội dung ở đây -->
-    </div>
+    <div class="modal-content" id="editCategoryContent"></div>
   </div>
 </div>
 
@@ -66,7 +65,6 @@
 <script src="${pageContext.request.contextPath}/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
 <script>
-
   function loadAddCategoryForm() {
     $.get("add-category", function (data) {
       $('#addCategoryContent').html(data);

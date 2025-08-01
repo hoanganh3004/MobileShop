@@ -21,7 +21,7 @@
     <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
         <!-- Brand -->
-        <a class="sidebar-brand d-flex align-items-center justify-content-center" href="${pageContext.request.contextPath}/view/ad/admin.jsp">
+        <a class="sidebar-brand d-flex align-items-center justify-content-center" href="${pageContext.request.contextPath}/admin-dashboard">
             <div class="sidebar-brand-icon rotate-n-15">
                 <i class="fas fa-tools"></i>
             </div>

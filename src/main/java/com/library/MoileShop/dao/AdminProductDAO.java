@@ -151,7 +151,7 @@ public class AdminProductDAO {
 
     // Phương thức xóa sản phẩm theo id
     public boolean deleteProductById(int id) {
-        String sql = "DELETE FROM products WHERE id = ?";
+        String sql = "UPDATE products SET is_deleted = 1 WHERE id = ?";
         try (Connection conn = new DBcontext().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);

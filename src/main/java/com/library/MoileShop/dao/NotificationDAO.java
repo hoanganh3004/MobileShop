@@ -35,6 +35,32 @@ public class NotificationDAO {
         return list;
     }
 
+    // lấy 1 thông báo theo id
+    public Notification getNotificationById(int id) {
+        String sql = "SELECT * FROM notifications WHERE id = ?";
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                Notification n = new Notification();
+                n.setId(rs.getInt("id"));
+                n.setUserCode(rs.getString("user_code"));
+                n.setMessage(rs.getString("message"));
+                n.setCreatedAt(rs.getTimestamp("created_at"));
+                n.setRead(rs.getBoolean("is_read"));
+                return n;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+
     //đếm số thông báo chưa đọc
     public int countUnread(String userCode) { // Sửa từ int userId thành String userCode
         String sql = "SELECT COUNT(*) FROM notifications WHERE user_code = ? AND is_read = false";

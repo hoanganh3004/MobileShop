@@ -1,5 +1,6 @@
-package com.library.MoileShop.control.acc;
-import com.library.MoileShop.service.AccService;
+package com.library.MoileShop.control.ad;
+
+import com.library.MoileShop.service.AdminService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -8,24 +9,23 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
-@WebServlet("/forgot-password")
-public class ForgotPasswordControl extends HttpServlet {
+@WebServlet("/admin-dashboard")
+public class AdminDashboardControl extends HttpServlet {
+    private final AdminService adminService;
 
-    private final AccService accService;
-
-    public ForgotPasswordControl() {
-        this.accService = new AccService();
+    public AdminDashboardControl() {
+        this.adminService = new AdminService();
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.getRequestDispatcher("view/acc/forgotPassword.jsp").forward(request, response);
+        adminService.handleDashboardStatistics(request, response);
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        accService.handleForgotPassword(request, response);
+        doGet(request, response);
     }
 }

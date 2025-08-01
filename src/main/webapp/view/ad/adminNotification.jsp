@@ -1,6 +1,6 @@
 <%@ page contentType="text/html; charset=UTF-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
-<%@ include file="admin-header.jsp" %>
+<%@ include file="adminHeader.jsp" %>
 
 <h1 class="h3 mb-4 text-gray-800">📢 Quản lý thông báo</h1>
 
@@ -32,6 +32,7 @@
   <table class="table table-bordered">
     <thead class="thead-light">
     <tr>
+      <th>STT</th>
       <th>Người nhận</th>
       <th>Nội dung</th>
       <th>Ngày tạo</th>
@@ -39,8 +40,10 @@
     </tr>
     </thead>
     <tbody>
-    <c:forEach var="n" items="${notificationList}">
+    <c:set var="startIndex" value="${(currentPage - 1) * pageSize}" />
+    <c:forEach var="n" items="${notificationList}" varStatus="loop">
       <tr>
+        <td>${startIndex + loop.index + 1}</td>
         <td>${n.fullName}</td>
         <td>${n.message}</td>
         <td>${n.createdAt}</td>
@@ -55,6 +58,37 @@
     </tbody>
   </table>
 </div>
+<!-- Phân trang -->
+<c:set var="start" value="${currentPage - 2 < 1 ? 1 : currentPage - 2}" />
+<c:set var="end" value="${currentPage + 2 > totalPage ? totalPage : currentPage + 2}" />
+
+<nav>
+  <ul class="pagination justify-content-center">
+    <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
+      <a class="page-link" href="admin-notification?page=${currentPage - 1}&keyword=${keyword}">«</a>
+    </li>
+
+    <c:if test="${start > 1}">
+      <li class="page-item"><a class="page-link" href="admin-notification?page=1&keyword=${keyword}">1</a></li>
+      <li class="page-item disabled"><span class="page-link">...</span></li>
+    </c:if>
+
+    <c:forEach begin="${start}" end="${end}" var="i">
+      <li class="page-item ${i == currentPage ? 'active' : ''}">
+        <a class="page-link" href="admin-notification?page=${i}&keyword=${keyword}">${i}</a>
+      </li>
+    </c:forEach>
+
+    <c:if test="${end < totalPage}">
+      <li class="page-item disabled"><span class="page-link">...</span></li>
+      <li class="page-item"><a class="page-link" href="admin-notification?page=${totalPage}&keyword=${keyword}">${totalPage}</a></li>
+    </c:if>
+
+    <li class="page-item ${currentPage == totalPage ? 'disabled' : ''}">
+      <a class="page-link" href="admin-notification?page=${currentPage + 1}&keyword=${keyword}">»</a>
+    </li>
+  </ul>
+</nav>
 
 <!-- Modal tạo thông báo -->
 <div class="modal fade" id="createNotificationModal" tabindex="-1" role="dialog"

@@ -9,7 +9,6 @@
 </div>
 
 <div class="modal-body">
-    <p><strong>👤 Khách hàng:</strong> ${order.customer.fullName}</p>
 
     <c:if test="${not empty order.recipientName}">
         <p><strong>👤 Người nhận:</strong> ${order.recipientName}</p>

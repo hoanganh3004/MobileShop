@@ -47,7 +47,7 @@ public class AccService {
 
 
     public String generateRandomCode() {
-        int maxId = dao.getLastAccountId(); // ⚠️ đảm bảo ShopDao có hàm getLastAccountId()
+        int maxId = dao.getLastAccountId(); // đảm bảo ShopDao có hàm getLastAccountId()
         String prefix = "ad";
         String number = String.format("%05d", maxId + 1);
         return prefix + number;
@@ -105,14 +105,14 @@ public class AccService {
 
         if (email == null || email.isEmpty()) {
             request.setAttribute("error", "Vui lòng nhập địa chỉ email.");
-            request.getRequestDispatcher("view/acc/forgot-password.jsp").forward(request, response);
+            request.getRequestDispatcher("view/acc/forgotPassword.jsp").forward(request, response);
             return;
         }
 
         Account account = dao.getAccountByEmail(email);
         if (account == null) {
             request.setAttribute("error", "Không tìm thấy tài khoản với email đã nhập.");
-            request.getRequestDispatcher("view/acc/forgot-password.jsp").forward(request, response);
+            request.getRequestDispatcher("view/acc/forgotPassword.jsp").forward(request, response);
             return;
         }
 
@@ -142,7 +142,7 @@ public class AccService {
         response.sendRedirect(request.getContextPath() + "/home");
     }
 
-    // ✅ Xử lý đăng ký
+    // Xử lý đăng ký
     public void handleRegister(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String username = request.getParameter("userName");
@@ -176,7 +176,7 @@ public class AccService {
             return;
         }
 
-        String code = generateRandomCode(); // ✅ sửa chỗ này, không còn trùng nữa
+        String code = generateRandomCode();
         Timestamp now = new Timestamp(System.currentTimeMillis());
         String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
 
@@ -219,7 +219,7 @@ public class AccService {
                 session.setAttribute("cartCount", cartCount);
 
                 if ("admin".equalsIgnoreCase(acc.getRole())) {
-                    response.sendRedirect(request.getContextPath() + "/view/ad/admin.jsp");
+                    response.sendRedirect(request.getContextPath() + "/admin-dashboard");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/home");
                 }

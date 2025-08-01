@@ -14,10 +14,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,500,700" rel="stylesheet">
     <link rel="stylesheet" href="<%= request.getContextPath() %>/css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/slick.css"/>
-    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/slick-theme.css"/>
-    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/nouislider.min.css"/>
-    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/font-awesome.min.css">
     <link rel="stylesheet" href="<%= request.getContextPath() %>/css/style.css"/>
 </head>
 <body>
@@ -36,6 +32,16 @@
 
 <div class="section">
     <div class="container">
+        <c:if test="${not empty outOfStockMessages}">
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    <c:forEach var="msg" items="${outOfStockMessages}">
+                        <li>${msg}</li>
+                    </c:forEach>
+                </ul>
+            </div>
+        </c:if>
+
         <form action="checkout" method="post">
             <div class="row">
                 <!-- Thông tin người đặt -->
@@ -65,9 +71,9 @@
                     </div>
                 </div>
 
-                <!-- Chi tiết đơn hàng -->
+                <!-- Thông tin đơn hàng -->
                 <div class="col-md-5 order-details">
-                    <h3 class="title text-center">Đơn của bạn </h3>
+                    <h3 class="title text-center">Đơn của bạn</h3>
                     <div class="order-summary">
                         <div class="order-col">
                             <div><strong>Sản phẩm</strong></div>
@@ -75,24 +81,25 @@
                         </div>
 
                         <div class="order-products">
-                            <c:if test="${not empty sessionScope.cartList}">
-                                <c:forEach var="item" items="${sessionScope.cartList}">
-                                    <div class="order-col">
-                                        <div style="display: flex; align-items: center;">
-                                            <img src="${pageContext.request.contextPath}/image?file=${fn:substringAfter(item.product.image, 'image\\')}"
-                                                 alt="${item.product.name}" width="40" height="40"
-                                                 style="margin-right: 8px; border-radius: 4px;">
-                                                ${item.quantity}x ${item.product.name}
-                                        </div>
-                                        <div>
-                                            $<fmt:formatNumber value="${item.quantity * item.product.price}" type="number" minFractionDigits="2"/>
+                            <c:forEach var="item" items="${sessionScope.cartList}">
+                                <div class="order-col">
+                                    <div style="display: flex; align-items: center;">
+                                        <img src="${pageContext.request.contextPath}/image?file=${fn:substringAfter(item.product.image, 'image\\')}"
+                                             alt="${item.product.name}" width="40" height="40"
+                                             style="margin-right: 8px; border-radius: 4px;">
+                                        <div style="display: inline-flex; align-items: center;">
+                                            <button type="button" class="btn-decrease" data-id="${item.product.id}" style="border:none;background:#eee;padding:4px 8px;">-</button>
+                                            <span style="margin: 0 8px;">${item.quantity}</span>
+                                            <button type="button" class="btn-increase" data-id="${item.product.id}" style="border:none;background:#eee;padding:4px 8px;">+</button>
+                                            <span style="margin-left: 8px;">${item.product.name}</span>
                                         </div>
                                     </div>
-                                </c:forEach>
-                            </c:if>
-                            <c:if test="${empty sessionScope.cartList}">
-                                <p style="color:red;">Giỏ hàng trống!</p>
-                            </c:if>
+                                    <div style="font-size: 14px;">
+                                            ${item.quantity} x $<fmt:formatNumber value="${item.product.price}" type="number" minFractionDigits="2"/>
+                                        = <strong>$<fmt:formatNumber value="${item.quantity * item.product.price}" type="number" minFractionDigits="2"/></strong>
+                                    </div>
+                                </div>
+                            </c:forEach>
                         </div>
 
                         <div class="order-col">
@@ -102,17 +109,13 @@
 
                         <div class="order-col">
                             <div><strong>Số tiền phải thanh toán</strong></div>
-                            <div>
-                                <strong class="order-total">
-                                    $<fmt:formatNumber value="${sessionScope.cartTotal}" type="number" minFractionDigits="2"/>
-                                </strong>
-                            </div>
+                            <div><strong class="order-total">$<fmt:formatNumber value="${sessionScope.cartTotal}" type="number" minFractionDigits="2"/></strong></div>
                         </div>
                     </div>
 
-                    <c:if test="${not empty sessionScope.cartList}">
+                    <c:if test="${not empty sessionScope.cartList && empty outOfStockMessages}">
                         <div class="payment-method text-center mt-3">
-                            <button type="submit" class="primary-btn order-submit">Thanh toán</button>
+                            <button type="submit" class="primary-btn order-submit">Đặt hàng</button>
                         </div>
                     </c:if>
                 </div>
@@ -121,15 +124,11 @@
     </div>
 </div>
 
-<jsp:include page="footer.jsp"/>
+<jsp:include page="footer.jsp" ></jsp:include>
 
+<!-- Script -->
 <script src="<%= request.getContextPath() %>/js/jquery.min.js"></script>
 <script src="<%= request.getContextPath() %>/js/bootstrap.min.js"></script>
-<script src="<%= request.getContextPath() %>/js/slick.min.js"></script>
-<script src="<%= request.getContextPath() %>/js/nouislider.min.js"></script>
-<script src="<%= request.getContextPath() %>/js/jquery.zoom.min.js"></script>
-<script src="<%= request.getContextPath() %>/js/main.js"></script>
-
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const checkbox = document.getElementById("shiping-address");
@@ -138,7 +137,26 @@
             guestInputs.forEach(input => input.required = checkbox.checked);
         }
         checkbox.addEventListener("change", toggleRequired);
-        toggleRequired(); // init
+        toggleRequired();
+
+        document.querySelectorAll(".btn-increase, .btn-decrease").forEach(btn => {
+            btn.addEventListener("click", function () {
+                const productId = this.dataset.id;
+                const operation = this.classList.contains("btn-increase") ? "increase" : "decrease";
+
+                fetch("checkout", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: new URLSearchParams({
+                        action: "updateQuantity",
+                        productId: productId,
+                        operation: operation
+                    })
+                }).then(() => window.location.reload());
+            });
+        });
     });
 </script>
 

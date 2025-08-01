@@ -2,7 +2,7 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
-<%@ include file="admin-header.jsp" %>
+<%@ include file="adminHeader.jsp" %>
 
 <h1 class="h3 mb-4 text-gray-800">🧾 Quản lý đơn hàng</h1>
 
@@ -10,6 +10,14 @@
 <form action="admin-order" method="get" class="form-inline mb-3">
   <input type="text" name="customer" class="form-control rounded-pill mr-2 shadow-sm" placeholder="Tên khách hàng..." value="${param.customer}">
   <input type="date" name="orderDate" class="form-control rounded-pill mr-2 shadow-sm" value="${param.orderDate}">
+  <select name="status" class="form-control rounded-pill mr-2 shadow-sm">
+    <option value="">Tất cả trạng thái</option>
+    <option value="Chờ xác nhận" ${param.status == 'Chờ xác nhận' ? 'selected' : ''}>Chờ xác nhận</option>
+    <option value="Xác nhận" ${param.status == 'Xác nhận' ? 'selected' : ''}>Xác nhận</option>
+    <option value="Đang giao" ${param.status == 'Đang giao' ? 'selected' : ''}>Đang giao</option>
+    <option value="Hoàn thành" ${param.status == 'Hoàn thành' ? 'selected' : ''}>Hoàn thành</option>
+    <option value="Đã hủy" ${param.status == 'Đã hủy' ? 'selected' : ''}>Đã hủy</option>
+  </select>
   <button type="submit" class="btn btn-primary rounded-pill px-4"><i class="fas fa-search"></i> Tìm kiếm</button>
   <button type="button" class="btn btn-success ml-2 rounded-pill px-4" onclick="openCreateOrderModal()"><i class="fas fa-plus"></i> Tạo đơn hàng</button>
 </form>
@@ -19,6 +27,7 @@
   <table class="table table-bordered shadow-sm">
     <thead class="thead-light">
     <tr>
+      <th>STT</th>
       <th>Khách hàng</th>
       <th>Ngày đặt</th>
       <th>Tổng tiền</th>
@@ -27,9 +36,11 @@
     </tr>
     </thead>
     <tbody>
-    <c:forEach var="o" items="${orderList}">
+    <c:set var="startIndex" value="${(currentPage - 1) * pageSize}" />
+    <c:forEach var="o" items="${orderList}" varStatus="loop">
       <tr>
-        <td>${o.customer.fullName}</td>
+        <td>${startIndex + loop.index + 1}</td>
+        <td>${o.customer != null ? o.customer.fullName : o.recipientName}</td>
         <td>${o.orderDate}</td>
         <td><fmt:formatNumber value="${o.total}" type="number" maxFractionDigits="0"/> $</td>
         <td>
@@ -37,12 +48,18 @@
             <input type="hidden" name="orderId" value="${o.id}" />
             <select name="status" class="form-control form-control-sm mr-2 rounded-pill" onchange="toggleReason(this, ${o.id})">
               <option value="Chờ xác nhận" ${o.status == 'Chờ xác nhận' ? 'selected' : ''}>Chờ xác nhận</option>
+              <option value="Xác nhận" ${o.status == 'Xác nhận' ? 'selected' : ''}>Xác nhận</option>
               <option value="Đang giao" ${o.status == 'Đang giao' ? 'selected' : ''}>Đang giao</option>
               <option value="Hoàn thành" ${o.status == 'Hoàn thành' ? 'selected' : ''}>Hoàn thành</option>
               <option value="Đã hủy" ${o.status == 'Đã hủy' ? 'selected' : ''}>Đã hủy</option>
             </select>
-            <input type="text" name="cancelReason" id="cancelReason-${o.id}" class="form-control form-control-sm mr-2 rounded-pill"
-                   style="display: ${o.status == 'Đã hủy' ? 'inline-block' : 'none'};" placeholder="Nhập lý do hủy..." />
+
+            <input type="text" name="cancelReason" id="cancelReason-${o.id}"
+                   class="form-control form-control-sm mr-2 rounded-pill"
+                   placeholder="Nhập lý do hủy..."
+                   value="${o.cancelReason}"
+                   style="display: ${o.status == 'Đã hủy' && empty o.cancelReason ? 'inline-block' : 'none'};" />
+
             <button type="submit" class="btn btn-sm btn-primary rounded-pill">Cập nhật</button>
           </form>
         </td>
@@ -66,6 +83,30 @@
   </div>
 </div>
 
+<!-- Phân trang -->
+<c:set var="start" value="${currentPage - 2 < 1 ? 1 : currentPage - 2}" />
+<c:set var="end" value="${currentPage + 2 > totalPage ? totalPage : currentPage + 2}" />
+
+<c:if test="${totalPage > 1}">
+  <nav>
+    <ul class="pagination justify-content-center">
+      <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
+        <a class="page-link" href="admin-order?page=${currentPage - 1}&customer=${customer}&orderDate=${orderDate}&status=${status}">«</a>
+      </li>
+
+      <c:forEach begin="${start}" end="${end}" var="i">
+        <li class="page-item ${i == currentPage ? 'active' : ''}">
+          <a class="page-link" href="admin-order?page=${i}&customer=${customer}&orderDate=${orderDate}&status=${status}">${i}</a>
+        </li>
+      </c:forEach>
+
+      <li class="page-item ${currentPage == totalPage ? 'disabled' : ''}">
+        <a class="page-link" href="admin-order?page=${currentPage + 1}&customer=${customer}&orderDate=${orderDate}&status=${status}">»</a>
+      </li>
+    </ul>
+  </nav>
+</c:if>
+
 <!-- Modal tạo đơn hàng -->
 <div class="modal fade" id="createOrderModal" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-lg" role="document">
@@ -75,15 +116,21 @@
   </div>
 </div>
 
-<!-- jQuery + Bootstrap JS -->
+<!-- JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS xử lý -->
 <script>
   function toggleReason(selectElem, orderId) {
-    var input = document.getElementById('cancelReason-' + orderId);
-    input.style.display = (selectElem.value === 'Đã hủy') ? 'inline-block' : 'none';
+    const input = document.getElementById('cancelReason-' + orderId);
+    if (!input) return;
+    if (selectElem.value === 'Đã hủy') {
+      input.style.display = 'inline-block';
+      input.focus();
+    } else {
+      input.style.display = 'none';
+      input.value = '';
+    }
   }
 
   function openOrderDetail(orderId) {

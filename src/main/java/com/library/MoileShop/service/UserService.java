@@ -19,10 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class UserService {
 
@@ -180,9 +177,14 @@ public class UserService {
         if (nid != null && accObj != null) {
             try {
                 int notificationId = Integer.parseInt(nid);
+
+                // Đánh dấu đã đọc
                 notificationDAO.markAsRead(notificationId);
 
-                // ⚠️ Cập nhật lại danh sách và số lượng thông báo trong session
+                // Lấy nội dung thông báo
+                Notification notify = notificationDAO.getNotificationById(notificationId);
+
+                // Cập nhật session
                 Account acc = (Account) accObj;
                 String userCode = accountDAO.getUserCodeById(acc.getId());
                 List<Notification> updatedList = notificationDAO.getAllByUser(userCode);
@@ -190,11 +192,22 @@ public class UserService {
                 session.setAttribute("notifyList", updatedList);
                 session.setAttribute("notifyCount", unreadCount);
 
+                // 👉 Nếu message chứa mã đơn dạng #1234 → redirect đến order-history
+                if (notify != null && notify.getMessage() != null) {
+                    String message = notify.getMessage();
+                    java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("#(\\d+)").matcher(message);
+                    if (matcher.find()) {
+                        String orderId = matcher.group(1); // lấy số sau #
+                        response.sendRedirect("order-history?orderId=" + orderId);
+                        return;
+                    }
+                }
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-
+        // Nếu không có orderId → quay lại trang trước hoặc về home
         String referer = request.getHeader("referer");
         if (referer != null) {
             response.sendRedirect(referer);
@@ -202,6 +215,7 @@ public class UserService {
             response.sendRedirect("home");
         }
     }
+
 
     // Phương thức xử lý RemoveCartItemControl
     public void handleRemoveCartItem(HttpServletRequest request, HttpServletResponse response)
@@ -269,7 +283,7 @@ public class UserService {
         List<CartItem> cartItems = new ArrayList<>();
         AdminProductDAO productDAO = new AdminProductDAO();
         double total = 0;
-
+        List<String> outOfStockMessages = new ArrayList<>();
         if (cartRaw != null) {
             for (Map.Entry<String, ?> entry : cartRaw.entrySet()) {
                 try {
@@ -280,6 +294,11 @@ public class UserService {
 
                     Product p = productDAO.getProductById(productId);
                     if (p != null) {
+                        if (p.getQuantity() < quantity) {
+                            outOfStockMessages.add("Sản phẩm '" + p.getName() + "' chỉ còn " + p.getQuantity() + " sản phẩm trong kho.");
+                            continue;
+                        }
+
                         CartItem item = new CartItem(p, quantity);
                         cartItems.add(item);
                         total += p.getPrice() * quantity;
@@ -299,22 +318,109 @@ public class UserService {
         }
         session.setAttribute("cartCount", count);
 
+        // Truyền thông báo lỗi (nếu có) về JSP
+        if (!outOfStockMessages.isEmpty()) {
+            request.setAttribute("outOfStockMessages", outOfStockMessages);
+        }
+
         request.getRequestDispatcher("view/user/checkout.jsp").forward(request, response);
     }
 
+
     public void handleCheckoutPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
         HttpSession session = request.getSession();
         Account acc = (Account) session.getAttribute("acc");
+
         if (acc == null) {
             response.sendRedirect("view/acc/login.jsp");
             return;
         }
 
-        List<CartItem> cartItems = (List<CartItem>) session.getAttribute("cartList");
-        Double total = (Double) session.getAttribute("cartTotal");
+        // 👉 Xử lý tăng/giảm số lượng sản phẩm
+        String action = request.getParameter("action");
+        String productIdStr = request.getParameter("productId");
+        String operation = request.getParameter("operation");
 
-        if (cartItems == null || cartItems.isEmpty() || total == null) {
+        System.out.println("DEBUG: action = " + action + ", productId = " + productIdStr + ", operation = " + operation);
+
+        if ("updateQuantity".equals(action)) {
+            List<CartItem> cartItems = (List<CartItem>) session.getAttribute("cartList");
+            if (cartItems == null) {
+                cartItems = new ArrayList<>();
+                session.setAttribute("cartList", cartItems);
+            }
+
+            if (productIdStr != null && !productIdStr.isEmpty() && operation != null) {
+                try {
+                    int productId = Integer.parseInt(productIdStr);
+
+                    Iterator<CartItem> iterator = cartItems.iterator();
+                    while (iterator.hasNext()) {
+                        CartItem item = iterator.next();
+                        if (item.getProduct().getId() == productId) {
+                            System.out.println("DEBUG: Trước cập nhật: " + item.getQuantity());
+
+                            if ("increase".equals(operation)) {
+                                item.setQuantity(item.getQuantity() + 1);
+                            } else if ("decrease".equals(operation)) {
+                                int newQty = item.getQuantity() - 1;
+                                if (newQty <= 0) {
+                                    iterator.remove();
+                                } else {
+                                    item.setQuantity(newQty);
+                                }
+                            }
+
+                            System.out.println("DEBUG: Sau cập nhật: " + item.getQuantity());
+                            break;
+                        }
+                    }
+
+                    // Tính lại tổng tiền và số lượng
+                    double total = 0;
+                    int totalQuantity = 0;
+                    for (CartItem item : cartItems) {
+                        total += item.getQuantity() * item.getProduct().getPrice();
+                        totalQuantity += item.getQuantity();
+                    }
+
+                    session.setAttribute("cartList", cartItems); // cập nhật lại giỏ
+                    session.setAttribute("cartTotal", total);
+                    session.setAttribute("cartCount", totalQuantity);
+
+                    // 👉 Cập nhật lại cart Map để handleCheckoutGet hiển thị đúng
+                    Map<String, Integer> cartMap = new HashMap<>();
+                    for (CartItem item : cartItems) {
+                        cartMap.put(String.valueOf(item.getProduct().getId()), item.getQuantity());
+                    }
+                    session.setAttribute("cart", cartMap);
+
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    return;
+
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    return;
+                }
+            } else {
+                System.out.println("DEBUG: Thiếu productId hoặc operation.");
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+        }
+
+        // 👉 Xử lý đặt hàng bình thường
+        List<CartItem> cartItems = (List<CartItem>) session.getAttribute("cartList");
+        if (cartItems == null) {
+            cartItems = new ArrayList<>();
+            session.setAttribute("cartList", cartItems);
+        }
+
+        Double total = (Double) session.getAttribute("cartTotal");
+        if (cartItems.isEmpty() || total == null) {
             request.setAttribute("message", "Giỏ hàng trống!");
             handleCheckoutGet(request, response);
             return;
@@ -335,21 +441,19 @@ public class UserService {
             address = acc.getAddress();
         }
 
-        // Thêm try-catch cho accountDAO.getUserCodeById
+        // Lấy userCode từ DB
         String userCode = null;
         try {
             userCode = accountDAO.getUserCodeById(acc.getId());
         } catch (Exception e) {
-            System.err.println("Lỗi khi lấy userCode từ accountDAO: " + e.getMessage());
             e.printStackTrace();
-            session.setAttribute("flash", "Lỗi khi lấy thông tin người dùng. Vui lòng thử lại!");
+            session.setAttribute("flash", "Lỗi lấy thông tin người dùng.");
             response.sendRedirect("home");
             return;
         }
 
         if (userCode == null) {
-            System.err.println("Không tìm thấy userCode cho ID: " + acc.getId());
-            session.setAttribute("flash", "Không tìm thấy mã người dùng. Vui lòng kiểm tra lại!");
+            session.setAttribute("flash", "Không tìm thấy mã người dùng.");
             response.sendRedirect("home");
             return;
         }
@@ -374,11 +478,27 @@ public class UserService {
 
             session.setAttribute("flash", "Đặt hàng thành công!");
         } else {
-            session.setAttribute("flash", "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại!");
+            session.setAttribute("flash", "Có lỗi xảy ra khi đặt hàng.");
         }
 
         response.sendRedirect("home");
     }
+
+    public void handleCancelOrder(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        int orderId = Integer.parseInt(request.getParameter("id"));
+        String reason = request.getParameter("reason");
+        boolean success = adminOrderDAO.cancelOrder(orderId, reason);
+
+        response.setContentType("text/plain");
+        if (success) {
+            response.getWriter().write("OK");
+        } else {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Không thể hủy đơn hàng.");
+        }
+    }
+
+
 
     // Phương thức xử lý OrderHistoryControl
     public void handleOrderHistory(HttpServletRequest request, HttpServletResponse response)
@@ -399,7 +519,7 @@ public class UserService {
         request.setAttribute("orders", orders);
         request.setAttribute("listC", listC);
 
-        request.getRequestDispatcher("view/user/order-history.jsp").forward(request, response);
+        request.getRequestDispatcher("view/user/orderHistory.jsp").forward(request, response);
     }
 
     // Phương thức xử lý HomeControl

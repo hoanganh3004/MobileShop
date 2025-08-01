@@ -8,14 +8,26 @@
 
 <form action="create-order" method="post">
     <div class="modal-body">
-        <!-- 👤 Chọn khách hàng -->
+
+        <!-- 👤 Thông tin người nhận -->
         <div class="form-group">
-            <label>👤 Chọn khách hàng:</label>
-            <select class="form-control" name="userId" required>
-                <c:forEach var="u" items="${users}">
-                    <option value="${u.id}">${u.fullName}</option>
-                </c:forEach>
-            </select>
+            <label>👤 Tên người nhận:</label>
+            <input type="text" class="form-control" name="recipientName" required>
+        </div>
+
+        <div class="form-group">
+            <label>📧 Email người nhận:</label>
+            <input type="email" class="form-control" name="recipientEmail" required>
+        </div>
+
+        <div class="form-group">
+            <label>📞 Số điện thoại:</label>
+            <input type="text" class="form-control" name="recipientPhone" required>
+        </div>
+
+        <div class="form-group">
+            <label>🏠 Địa chỉ nhận hàng:</label>
+            <input type="text" class="form-control" name="recipientAddress" required>
         </div>
 
         <!-- 🔎 Tìm kiếm sản phẩm -->

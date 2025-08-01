@@ -4,7 +4,7 @@ import java.sql.Timestamp;
 
 public class Account {
     private int id;
-    private String code; // thêm dòng này
+    private String code;
     private String username;
     private String password;
     private String fullName;

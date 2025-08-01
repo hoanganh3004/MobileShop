@@ -14,7 +14,7 @@ public class LoginControl extends HttpServlet {
     private final AccService accService;
 
     public LoginControl() {
-        this.accService = new com.library.MoileShop.service.AccService();
+        this.accService = new AccService();
     }
 
     @Override
