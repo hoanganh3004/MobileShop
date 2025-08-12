@@ -1,4 +1,4 @@
-# 💻 Web Mua Bán Điện Thoại (MobileShop)
+# 💻 Web Mua Bán Điện Thoại-Servlet-JSP (MobileShop)
 
 > Được phát triển bằng **Servlet - JSP**
 
