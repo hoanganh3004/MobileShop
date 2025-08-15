@@ -81,7 +81,7 @@ public class AdminNotificationDAO {
 
 
     //  Lấy danh sách thông báo mới nhất của user
-    public List<Notification> getUnreadNotificationsByUser(String userCode) {
+    public List<Notification> getAllNotificationsByUser(String userCode) {
         List<Notification> list = new ArrayList<>();
         String sql = "SELECT * FROM notifications WHERE user_code = ? ORDER BY created_at DESC";
 

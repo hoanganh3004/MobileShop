@@ -17,7 +17,7 @@
 
 <h1 class="h3 mb-4 text-gray-800">🛍️ Quản lý sản phẩm</h1>
 
-<!-- ✅ Thông báo -->
+<!-- Thông báo -->
 <c:if test="${not empty sessionScope.msg}">
   <div class="alert alert-${sessionScope.msgType} alert-dismissible fade show" role="alert">
       ${sessionScope.msg}
@@ -80,30 +80,44 @@
 <nav>
   <ul class="pagination justify-content-center">
     <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-      <a class="page-link" href="admin-product?page=${currentPage - 1}&keyword=${keyword}">«</a>
+      <a class="page-link" href="admin-product?page=${currentPage - 1}&keyword=${keyword}&size=${pageSize}">«</a>
     </li>
 
     <c:if test="${start > 1}">
-      <li class="page-item"><a class="page-link" href="admin-product?page=1&keyword=${keyword}">1</a></li>
+      <li class="page-item">
+        <a class="page-link" href="admin-product?page=1&keyword=${keyword}&size=${pageSize}">1</a>
+      </li>
       <li class="page-item disabled"><span class="page-link">...</span></li>
     </c:if>
 
     <c:forEach begin="${start}" end="${end}" var="i">
       <li class="page-item ${i == currentPage ? 'active' : ''}">
-        <a class="page-link" href="admin-product?page=${i}&keyword=${keyword}">${i}</a>
+        <a class="page-link" href="admin-product?page=${i}&keyword=${keyword}&size=${pageSize}">${i}</a>
       </li>
     </c:forEach>
 
     <c:if test="${end < totalPage}">
       <li class="page-item disabled"><span class="page-link">...</span></li>
-      <li class="page-item"><a class="page-link" href="admin-product?page=${totalPage}&keyword=${keyword}">${totalPage}</a></li>
+      <li class="page-item">
+        <a class="page-link" href="admin-product?page=${totalPage}&keyword=${keyword}&size=${pageSize}">${totalPage}</a>
+      </li>
     </c:if>
 
     <li class="page-item ${currentPage == totalPage ? 'disabled' : ''}">
-      <a class="page-link" href="admin-product?page=${currentPage + 1}&keyword=${keyword}">»</a>
+      <a class="page-link" href="admin-product?page=${currentPage + 1}&keyword=${keyword}&size=${pageSize}">»</a>
     </li>
   </ul>
 </nav>
+
+<!-- sp hiển thị -->
+<form method="get" action="admin-product" style="display:inline-block;">
+  <input type="hidden" name="keyword" value="${param.keyword}" />
+  <select name="size" onchange="this.form.submit()">
+    <option value="5" ${pageSize == 5 ? 'selected' : ''}>5 sản phẩm/trang</option>
+    <option value="10" ${pageSize == 10 ? 'selected' : ''}>10 sản phẩm/trang</option>
+    <option value="20" ${pageSize == 20 ? 'selected' : ''}>20 sản phẩm/trang</option>
+  </select>
+</form>
 
 <!-- Modal thêm sản phẩm -->
 <div class="modal fade" id="addProductModal" tabindex="-1" role="dialog" aria-hidden="true">

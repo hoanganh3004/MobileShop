@@ -105,17 +105,53 @@ public class AdminOrderDAO {
         return 0;
     }
 
-    // Đếm tổng số đơn hàng
+    // hủy bên user
     public boolean cancelOrder(int orderId, String cancelReason) {
-        String sql = "UPDATE orders SET status = 'Đã hủy', cancel_reason = ? WHERE id = ? AND status = 'Chờ xác nhận'";
-        try (Connection conn = new DBcontext().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, cancelReason);
-            ps.setInt(2, orderId);
-            return ps.executeUpdate() > 0;
+        String updateOrderSQL = "UPDATE orders SET status = 'Đã hủy', cancel_reason = ? WHERE id = ? AND status = 'Chờ xác nhận'";
+        String getItemsSQL = "SELECT product_id, quantity FROM order_items WHERE order_id = ?";
+        String restoreQtySQL = "UPDATE products SET quantity = quantity + ? WHERE id = ?";
+        try (Connection conn = new DBcontext().getConnection()) {
+            conn.setAutoCommit(false);
+
+            try (
+                    PreparedStatement psUpdateOrder = conn.prepareStatement(updateOrderSQL);
+                    PreparedStatement psGetItems = conn.prepareStatement(getItemsSQL);
+                    PreparedStatement psRestoreQty = conn.prepareStatement(restoreQtySQL)
+            ) {
+                // Cập nhật trạng thái đơn hàng
+                psUpdateOrder.setString(1, cancelReason);
+                psUpdateOrder.setInt(2, orderId);
+                int updated = psUpdateOrder.executeUpdate();
+
+                if (updated == 0) {
+                    conn.rollback();
+                    return false;
+                }
+                // Hoàn lại hàng vào kho
+                psGetItems.setInt(1, orderId);
+                try (ResultSet rs = psGetItems.executeQuery()) {
+                    while (rs.next()) {
+                        int productId = rs.getInt("product_id");
+                        int quantity = rs.getInt("quantity");
+
+                        psRestoreQty.setInt(1, quantity);
+                        psRestoreQty.setInt(2, productId);
+                        psRestoreQty.executeUpdate();
+                    }
+                }
+
+                conn.commit();
+                return true;
+
+            } catch (Exception e) {
+                conn.rollback();
+                e.printStackTrace();
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         return false;
     }
 
@@ -174,7 +210,7 @@ public class AdminOrderDAO {
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 Product p = new Product();
-                // ✅ Lấy thông tin từ bảng order_items (không phải từ bảng products)
+                // Lấy thông tin từ bảng order_items (không phải từ bảng products)
                 p.setId(rs.getInt("product_id"));
                 p.setName(rs.getString("product_name"));
                 p.setPrice(rs.getDouble("unit_price"));
@@ -254,8 +290,6 @@ public class AdminOrderDAO {
 
         return false;
     }
-
-
 
     //  Thêm thông báo cho người dùng
     public void notifyUser(String userCode, String message) {
@@ -360,94 +394,107 @@ public class AdminOrderDAO {
     //  Tạo đơn hàng có lưu thông tin người nhận (dành cho đặt giúp người khác)
     public boolean createOrder(String userCode, String name, String email, String phone, String address,
                                List<CartItem> cartItems, Double totalPrice) {
+        String insertOrderSQL = "INSERT INTO orders(user_code, recipient_name, recipient_email, recipient_phone, " +
+                "recipient_address, order_date, total_amount, status) VALUES (?, ?, ?, ?, ?, NOW(), ?, 'Chờ xác nhận')";
 
-        String insertOrderSQL = "INSERT INTO orders(user_code, recipient_name, recipient_email, recipient_phone, recipient_address, order_date, total_amount, status) " +
-                "VALUES (?, ?, ?, ?, ?, NOW(), ?, 'Chờ xác nhận')";
+        String insertItemSQL = "INSERT INTO order_items(order_id, product_id, quantity, unit_price, " +
+                "product_name, product_image, product_masp, product_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-        String insertItemSQL = "INSERT INTO order_items(order_id, product_id, quantity, unit_price, product_name, product_image, product_masp, product_description) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
-        String updateQtySQL = "UPDATE products SET quantity = quantity - ? WHERE id = ?";
+        String updateQtySQL = "UPDATE products SET quantity = quantity - ? WHERE id = ? AND quantity >= ?";
+        String checkStockSQL = "SELECT quantity FROM products WHERE id = ? FOR UPDATE";
 
         try (Connection conn = new DBcontext().getConnection()) {
             conn.setAutoCommit(false);
 
-            // Thêm đơn hàng
-            PreparedStatement psOrder = conn.prepareStatement(insertOrderSQL, Statement.RETURN_GENERATED_KEYS);
-
-            // Nếu userCode là null, set NULL vào DB
-            if (userCode == null || userCode.trim().isEmpty()) {
-                psOrder.setNull(1, java.sql.Types.VARCHAR);
-            } else {
-                psOrder.setString(1, userCode);
+            //  Kiểm tra tồn kho
+            try (PreparedStatement psCheck = conn.prepareStatement(checkStockSQL)) {
+                for (CartItem item : cartItems) {
+                    psCheck.setInt(1, item.getProduct().getId());
+                    try (ResultSet rs = psCheck.executeQuery()) {
+                        if (!rs.next() || rs.getInt(1) < item.getQuantity()) {
+                            conn.rollback();
+                            return false;
+                        }
+                    }
+                }
             }
 
-            psOrder.setString(2, name);
-            psOrder.setString(3, email);
-            psOrder.setString(4, phone);
-            psOrder.setString(5, address);
-            psOrder.setDouble(6, totalPrice);
-            psOrder.executeUpdate();
+            //  Tạo đơn hàng
+            int orderId;
+            try (PreparedStatement psOrder = conn.prepareStatement(insertOrderSQL, Statement.RETURN_GENERATED_KEYS)) {
+                if (userCode == null || userCode.trim().isEmpty()) {
+                    psOrder.setNull(1, Types.VARCHAR);
+                } else {
+                    psOrder.setString(1, userCode);
+                }
+                psOrder.setString(2, name);
+                psOrder.setString(3, email);
+                psOrder.setString(4, phone);
+                psOrder.setString(5, address);
+                psOrder.setDouble(6, totalPrice);
+                psOrder.executeUpdate();
 
-            ResultSet rs = psOrder.getGeneratedKeys();
-            if (rs.next()) {
-                int orderId = rs.getInt(1);
+                try (ResultSet rs = psOrder.getGeneratedKeys()) {
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return false;
+                    }
+                    orderId = rs.getInt(1);
+                }
+            }
 
-                // Thêm từng order item với snapshot sản phẩm
-                PreparedStatement psItem = conn.prepareStatement(insertItemSQL);
+            //  Thêm chi tiết đơn hàng
+            try (PreparedStatement psItem = conn.prepareStatement(insertItemSQL)) {
                 for (CartItem item : cartItems) {
                     Product p = item.getProduct();
-
                     psItem.setInt(1, orderId);
                     psItem.setInt(2, p.getId());
                     psItem.setInt(3, item.getQuantity());
                     psItem.setDouble(4, p.getPrice());
-
                     psItem.setString(5, p.getName());
                     psItem.setString(6, p.getImage());
                     psItem.setString(7, p.getMasp());
                     psItem.setString(8, p.getDescription());
-
                     psItem.addBatch();
                 }
                 psItem.executeBatch();
-
-                // Trừ số lượng tồn kho
-                PreparedStatement psUpdateQty = conn.prepareStatement(updateQtySQL);
-                for (CartItem item : cartItems) {
-                    psUpdateQty.setInt(1, item.getQuantity());
-                    psUpdateQty.setInt(2, item.getProduct().getId());
-                    psUpdateQty.addBatch();
-                }
-                psUpdateQty.executeBatch();
-
-                // Gửi thông báo nếu có userCode
-                if (userCode != null && !userCode.trim().isEmpty()) {
-                    String userIdSql = "SELECT id FROM accounts WHERE code = ?";
-                    int userId = -1;
-                    try (PreparedStatement psUser = conn.prepareStatement(userIdSql)) {
-                        psUser.setString(1, userCode);
-                        ResultSet userRs = psUser.executeQuery();
-                        if (userRs.next()) {
-                            userId = userRs.getInt("id");
-                        }
-                    }
-
-                    if (userId != -1) {
-                        notifyUser(userCode, "Bạn đã đặt hàng thành công đơn hàng với mã đơn hàng là #" + orderId);
-                    }
-                }
-
-                conn.commit();
-                return true;
             }
 
-            conn.rollback();
+            // Cập nhật tồn kho
+            try (PreparedStatement psUpdate = conn.prepareStatement(updateQtySQL)) {
+                for (CartItem item : cartItems) {
+                    psUpdate.setInt(1, item.getQuantity());
+                    psUpdate.setInt(2, item.getProduct().getId());
+                    psUpdate.setInt(3, item.getQuantity());
+                    psUpdate.addBatch();
+                }
+                for (int count : psUpdate.executeBatch()) {
+                    if (count == 0) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+            }
+
+            //  Gửi thông báo
+            if (userCode != null && !userCode.trim().isEmpty()) {
+                try (PreparedStatement psUser = conn.prepareStatement(
+                        "SELECT id FROM accounts WHERE code = ?")) {
+                    psUser.setString(1, userCode);
+                    try (ResultSet rs = psUser.executeQuery()) {
+                        if (rs.next()) {
+                            notifyUser(userCode, "Đặt hàng thành công. Mã đơn: #" + orderId);
+                        }
+                    }
+                }
+            }
+
+            conn.commit();
+            return true;
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return false;
     }
-
 }

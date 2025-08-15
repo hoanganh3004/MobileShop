@@ -1,612 +1,379 @@
 package com.library.MoileShop.service;
 
-import com.library.MoileShop.dao.AccountDAO;
-import com.library.MoileShop.dao.AdminCategoryDAO;
-import com.library.MoileShop.dao.AdminNotificationDAO;
-import com.library.MoileShop.dao.AdminOrderDAO;
-import com.library.MoileShop.dao.AdminProductDAO;
-import com.library.MoileShop.dao.NotificationDAO;
-import com.library.MoileShop.dao.ShopDao;
-import com.library.MoileShop.entity.Account;
-import com.library.MoileShop.entity.CartItem;
-import com.library.MoileShop.entity.Category;
-import com.library.MoileShop.entity.Notification;
-import com.library.MoileShop.entity.Order;
-import com.library.MoileShop.entity.Product;
+import com.library.MoileShop.dao.*;
+import com.library.MoileShop.entity.*;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.*;
 
 import java.io.IOException;
 import java.util.*;
 
 public class UserService {
 
+    // DAO
     private final AccountDAO accountDAO = new AccountDAO();
     private final ShopDao shopDao = new ShopDao();
     private final AdminOrderDAO adminOrderDAO = new AdminOrderDAO();
     private final AdminCategoryDAO adminCategoryDAO = new AdminCategoryDAO();
-    private final AdminProductDAO adminProductDAO = new AdminProductDAO();
     private final NotificationDAO notificationDAO = new NotificationDAO();
     private final AdminNotificationDAO adminNotificationDAO = new AdminNotificationDAO();
+    private final AdminProductDAO productDAO = new AdminProductDAO();
+    private final CartDAO cartDAO = new CartDAO();
 
-    // Phương thức xử lý AccountControl
-    public void handleAccount(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession(false);
-        if (session == null) {
-            response.sendRedirect(request.getContextPath() + "/view/acc/login.jsp");
-            return;
-        }
+    // Helper
+    private Account requireLogin(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        HttpSession session = req.getSession(false);
+        Account acc = (session != null) ? (Account) session.getAttribute("acc") : null;
 
-        Account acc = (Account) session.getAttribute("acc");
         if (acc == null) {
-            response.sendRedirect(request.getContextPath() + "/view/acc/login.jsp");
-            return;
+            resp.sendRedirect("view/acc/login.jsp");
+            return null;
         }
-
-        Account freshAcc = accountDAO.getAccountById(acc.getId());
-        if (freshAcc == null) {
-            response.sendRedirect(request.getContextPath() + "/view/acc/login.jsp");
-            return;
-        }
-
-        List<Category> listC = shopDao.getAllCategory();
-
-        request.setAttribute("listC", listC);
-        request.setAttribute("acc", freshAcc);
-        session.setAttribute("acc", freshAcc);
-
-        request.getRequestDispatcher("view/user/profile.jsp").forward(request, response);
+        return acc;
     }
 
-    public void handleAccountUpdate(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession(false);
-        if (session == null) {
-            response.sendRedirect(request.getContextPath() + "/view/acc/login.jsp");
+    private void loadCategories(HttpServletRequest req) {
+        req.setAttribute("listC", shopDao.getAllCategory());
+    }
+
+    private void updateCartSession(HttpSession session, String userCode) {
+        List<CartItem> items = cartDAO.getCartItemsByUser(userCode);
+
+        double total = 0;
+        int qty = 0;
+        Map<String, Integer> map = new HashMap<>();
+
+        for (CartItem i : items) {
+            total += i.getQuantity() * i.getProduct().getPrice();
+            qty += i.getQuantity();
+            map.put(String.valueOf(i.getProduct().getId()), i.getQuantity());
+        }
+
+        session.setAttribute("cartItems", items);
+        session.setAttribute("cartList", items);
+        session.setAttribute("cartTotal", total);
+        session.setAttribute("cartCount", qty);
+        session.setAttribute("cart", map);
+    }
+
+    // Account
+    public void handleAccount(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        Account acc = requireLogin(req, resp);
+        if (acc == null) return;
+
+        Account fresh = accountDAO.getAccountById(acc.getId());
+        if (fresh == null) {
+            resp.sendRedirect("view/acc/login.jsp");
             return;
         }
 
-        Account acc = (Account) session.getAttribute("acc");
-        if (acc == null) {
-            response.sendRedirect(request.getContextPath() + "/view/acc/login.jsp");
-            return;
-        }
+        loadCategories(req);
+        req.setAttribute("acc", fresh);
+        req.getSession().setAttribute("acc", fresh);
+        req.getRequestDispatcher("view/user/profile.jsp").forward(req, resp);
+    }
 
-        String action = request.getParameter("action");
+    public void handleAccountUpdate(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        Account acc = requireLogin(req, resp);
+        if (acc == null) return;
 
-        if ("updateInfo".equals(action)) {
-            String full_name = request.getParameter("full_name");
-            String email = request.getParameter("email");
-            String phone = request.getParameter("phone");
-            String address = request.getParameter("address");
-            String newPass = request.getParameter("password");
-            String confirmPass = request.getParameter("confirmPassword");
+        if ("updateInfo".equals(req.getParameter("action"))) {
+            String full = req.getParameter("full_name");
+            String email = req.getParameter("email");
 
-            if (full_name == null || full_name.trim().isEmpty() || email == null || email.trim().isEmpty()) {
-                request.setAttribute("err", "Họ tên và email không được để trống!");
-                handleAccount(request, response);
+            if (full == null || full.isBlank() || email == null || email.isBlank()) {
+                req.setAttribute("err", "Họ tên và email không được để trống!");
+                handleAccount(req, resp);
                 return;
             }
 
-            acc.setFullName(full_name);
+            acc.setFullName(full);
             acc.setEmail(email);
-            acc.setPhone(phone);
-            acc.setAddress(address);
+            acc.setPhone(req.getParameter("phone"));
+            acc.setAddress(req.getParameter("address"));
+            accountDAO.updateAccountInfo(acc);
 
-            boolean infoUpdated = accountDAO.updateAccountInfo(acc);
+            String pass = req.getParameter("password");
+            String confirm = req.getParameter("confirmPassword");
 
-            if (newPass != null && !newPass.isEmpty()) {
-                if (!newPass.equals(confirmPass)) {
-                    request.setAttribute("err", "Mật khẩu xác nhận không khớp!");
-                    handleAccount(request, response);
+            if (pass != null && !pass.isEmpty()) {
+                if (!pass.equals(confirm)) {
+                    req.setAttribute("err", "Mật khẩu xác nhận không khớp!");
+                    handleAccount(req, resp);
                     return;
                 }
-
-                String hashed = org.mindrot.jbcrypt.BCrypt.hashpw(newPass, org.mindrot.jbcrypt.BCrypt.gensalt());
-                boolean passUpdated = accountDAO.updatePassword(acc.getId(), hashed);
-                if (!passUpdated) {
-                    request.setAttribute("err", "Cập nhật mật khẩu thất bại.");
-                    handleAccount(request, response);
-                    return;
-                }
+                String hashed = org.mindrot.jbcrypt.BCrypt.hashpw(pass, org.mindrot.jbcrypt.BCrypt.gensalt());
+                accountDAO.updatePassword(acc.getId(), hashed);
                 acc.setPassword(hashed);
             }
 
-            session.setAttribute("acc", acc);
-            request.setAttribute("msg", "Cập nhật thông tin thành công!");
+            req.getSession().setAttribute("acc", acc);
+            req.setAttribute("msg", "Cập nhật thông tin thành công!");
         }
 
-        handleAccount(request, response);
+        handleAccount(req, resp);
     }
 
-    // Phương thức xử lý DetailControl
-    public void handleDetail(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-
-        String id = request.getParameter("pid");
-        Product p = shopDao.getProductsbyID(id);
-        List<Category> listC = shopDao.getAllCategory();
-
-        request.setAttribute("detail", p);
-        request.setAttribute("listC", listC);
-
-        request.getRequestDispatcher("view/user/product.jsp").forward(request, response);
+    //  Product Detail
+    public void handleDetail(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.setAttribute("detail", shopDao.getProductsbyID(req.getParameter("pid")));
+        loadCategories(req);
+        req.getRequestDispatcher("view/user/product.jsp").forward(req, resp);
     }
 
-    // Phương thức xử lý SearchControl
-    public void handleSearch(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
+    public void handleSearch(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String txt = req.getParameter("txt");
+        String cateRaw = req.getParameter("category");
 
-        String txtSearch = request.getParameter("txt");
-        String cateIdRaw = request.getParameter("category");
-        int cateId = 0;
-
+        int cid;
         try {
-            cateId = Integer.parseInt(cateIdRaw);
-        } catch (NumberFormatException e) {
-            cateId = 0;
+            cid = Integer.parseInt(cateRaw);
+        } catch (Exception e) {
+            cid = 0;
         }
 
-        List<Product> list;
-        if (cateId == 0) {
-            list = shopDao.searchByName(txtSearch);
-        } else {
-            list = shopDao.searchByNameAndCategory(txtSearch, cateId);
-        }
+        List<Product> list = (cid == 0)
+                ? shopDao.searchByName(txt)
+                : shopDao.searchByNameAndCategory(txt, cid);
 
-        List<Category> listC = shopDao.getAllCategory();
-
-        request.setAttribute("listP", list);
-        request.setAttribute("listC", listC);
-
-        request.getRequestDispatcher("view/user/store.jsp").forward(request, response);
+        req.setAttribute("listP", list);
+        loadCategories(req);
+        req.getRequestDispatcher("view/user/store.jsp").forward(req, resp);
     }
 
-    // Phương thức xử lý ReadNotificationControl
-    public void handleReadNotification(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        String nid = request.getParameter("id");
-        HttpSession session = request.getSession();
-        Object accObj = session.getAttribute("acc");
+    //  Notification
+    public void handleReadNotification(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String nid = req.getParameter("id");
+        Account acc = (Account) req.getSession().getAttribute("acc");
 
-        if (nid != null && accObj != null) {
+        if (nid != null && acc != null) {
             try {
-                int notificationId = Integer.parseInt(nid);
+                int id = Integer.parseInt(nid);
+                //ĐÁNH DẤU THÔNG BÁO LÀ ĐÃ ĐỌC
+                notificationDAO.markAsRead(id);
+                Notification n = notificationDAO.getNotificationById(id);
 
-                // Đánh dấu đã đọc
-                notificationDAO.markAsRead(notificationId);
+                String code = accountDAO.getUserCodeById(acc.getId());
+                req.getSession().setAttribute("notifyList", notificationDAO.getAllByUser(code));
+                req.getSession().setAttribute("notifyCount", notificationDAO.countUnread(code));
+                //CHUYỂN TỚI TRANG LỊCH SỬ ĐƠN HÀNG
+                if (n != null && n.getMessage() != null && n.getMessage().contains("#")) {
+                    String orderId = n.getMessage().split("#")[1].split(" ")[0];
+                    resp.sendRedirect("order-history?orderId=" + orderId);
+                    return;
+                }
+            } catch (Exception ignored) {}
+        }
 
-                // Lấy nội dung thông báo
-                Notification notify = notificationDAO.getNotificationById(notificationId);
+        resp.sendRedirect(Optional.ofNullable(req.getHeader("referer")).orElse("home"));
+    }
 
-                // Cập nhật session
-                Account acc = (Account) accObj;
-                String userCode = accountDAO.getUserCodeById(acc.getId());
-                List<Notification> updatedList = notificationDAO.getAllByUser(userCode);
-                int unreadCount = notificationDAO.countUnread(userCode);
-                session.setAttribute("notifyList", updatedList);
-                session.setAttribute("notifyCount", unreadCount);
+    //removeCart
+    public void handleRemoveCartItem(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Account acc = requireLogin(req, resp);
+        if (acc == null) return;
+        try {
+            cartDAO.removeItem(acc.getCode(), Integer.parseInt(req.getParameter("pid")));
+        } catch (Exception ignored) {}
 
-                // 👉 Nếu message chứa mã đơn dạng #1234 → redirect đến order-history
-                if (notify != null && notify.getMessage() != null) {
-                    String message = notify.getMessage();
-                    java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("#(\\d+)").matcher(message);
-                    if (matcher.find()) {
-                        String orderId = matcher.group(1); // lấy số sau #
-                        response.sendRedirect("order-history?orderId=" + orderId);
-                        return;
+        updateCartSession(req.getSession(), acc.getCode());
+        resp.sendRedirect(req.getHeader("Referer"));
+    }
+
+    //Category
+    public void handleCategory(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String cid = req.getParameter("cid");
+
+        req.setAttribute("listP", shopDao.getProductsbyCid(cid));
+        loadCategories(req);
+
+        try {
+            req.setAttribute("activeCid", Integer.parseInt(cid));
+        } catch (Exception e) {
+            req.setAttribute("activeCid", null);
+        }
+
+        req.getRequestDispatcher("view/user/store.jsp").forward(req, resp);
+    }
+
+    //Checkout
+    public void handleCheckoutGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        Account acc = requireLogin(req, resp);
+        if (acc == null) return;
+
+        updateCartSession(req.getSession(), acc.getCode());
+
+        if (req.getAttribute("outOfStockMessages") == null) {
+            List<String> msgs = new ArrayList<>();
+            boolean block = false;
+
+            for (CartItem i : cartDAO.getCartItemsByUser(acc.getCode())) {
+                Product p = productDAO.getProductById(i.getProduct().getId());
+                if (p.getQuantity() < i.getQuantity()) {
+                    msgs.add("Sản phẩm '" + p.getName() + "' chỉ còn " + p.getQuantity() + " sản phẩm trong kho.");
+                    block = true;
+                }
+            }
+
+            if (!msgs.isEmpty()) {
+                req.setAttribute("outOfStockMessages", msgs);
+                req.setAttribute("hasBlockingStock", block);
+            }
+        }
+
+        req.setAttribute("listC", adminCategoryDAO.getAllCategories());
+        req.getRequestDispatcher("view/user/checkout.jsp").forward(req, resp);
+    }
+
+    //Checkout
+    public void handleCheckoutPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        Account acc = requireLogin(req, resp);
+        if (acc == null) return;
+
+        String userCode = acc.getCode();
+
+        // Cập nhật số lượng
+        if ("updateQuantity".equals(req.getParameter("action"))) {
+            try {
+                int pid = Integer.parseInt(req.getParameter("productId"));
+                CartItem item = cartDAO.getCartItem(userCode, pid);
+
+                if (item != null) {
+                    int qty = item.getQuantity();
+
+                    if ("increase".equals(req.getParameter("operation"))) {
+                        // Kiểm tra tồn kho trước khi tăng
+                        Product p = productDAO.getProductById(pid);
+                        if (qty >= p.getQuantity()) {
+                            req.setAttribute("outOfStockMessages",
+                                    List.of("Sản phẩm '" + p.getName() + "' chỉ còn " + p.getQuantity() + " sản phẩm trong kho."));
+                            handleCheckoutGet(req, resp);
+                            return;
+                        }
+                        qty++;
+                    } else if ("decrease".equals(req.getParameter("operation"))) {
+                        // Chỉ giảm khi > 1
+                        if (qty > 1) {
+                            qty--;
+                        } else {
+                            req.setAttribute("outOfStockMessages",
+                                    List.of("Số lượng sản phẩm không thể nhỏ hơn 1."));
+                            handleCheckoutGet(req, resp);
+                            return;
+                        }
                     }
+
+                    // Cập nhật DB
+                    cartDAO.updateQuantity(userCode, pid, qty);
+
+                    // Cập nhật lại giỏ hàng trong session
+                    updateCartSession(req.getSession(), userCode);
                 }
 
+                resp.setStatus(HttpServletResponse.SC_OK);
             } catch (Exception e) {
-                e.printStackTrace();
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             }
+            return;
         }
-        // Nếu không có orderId → quay lại trang trước hoặc về home
-        String referer = request.getHeader("referer");
-        if (referer != null) {
-            response.sendRedirect(referer);
+        // Đặt hàng
+        List<CartItem> cartItems = (List<CartItem>) req.getSession().getAttribute("cartList");
+        Double total = (Double) req.getSession().getAttribute("cartTotal");
+
+        if (cartItems == null || cartItems.isEmpty() || total == null) {
+            req.setAttribute("message", "Giỏ hàng trống!");
+            handleCheckoutGet(req, resp); // load lại trang checkout
+            return;
+        }
+
+        boolean guest = req.getParameter("isGuestOrder") != null;
+        String name = guest ? req.getParameter("guestFullName") : acc.getFullName();
+        String email = guest ? req.getParameter("guestEmail") : acc.getEmail();
+        String phone = guest ? req.getParameter("guestPhone") : acc.getPhone();
+        String addr = guest ? req.getParameter("guestAddress") : acc.getAddress();
+
+        if (adminOrderDAO.createOrder(userCode, name, email, phone, addr, cartItems, total)) {
+            // Xóa giỏ hàng trong DB
+            cartDAO.clearCartByUser(userCode);
+
+            // Reset giỏ hàng trong session
+            req.getSession().setAttribute("cartItems", new ArrayList<CartItem>());
+            req.getSession().setAttribute("cartCount", 0);
+            req.getSession().setAttribute("cartTotal", 0.0);
+
+            // Cập nhật thông báo
+            List<Notification> nl = adminNotificationDAO.getAllNotificationsByUser(acc.getCode());
+            req.getSession().setAttribute("notifyList", nl);
+            req.getSession().setAttribute("notifyCount", nl.size());
+            req.getSession().setAttribute("flash", "Đặt hàng thành công!");
+
+            // Chuyển hướng về home chỉ khi đặt hàng thành công
+            resp.sendRedirect("home");
         } else {
-            response.sendRedirect("home");
+            handleCheckoutGet(req, resp);
         }
     }
 
-
-    // Phương thức xử lý RemoveCartItemControl
-    public void handleRemoveCartItem(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String pid = request.getParameter("pid");
-        HttpSession session = request.getSession();
-
-        Map<String, Integer> cart = (Map<String, Integer>) session.getAttribute("cart");
-        if (cart != null && pid != null && cart.containsKey(pid)) {
-            cart.remove(pid);
-            session.setAttribute("cart", cart);
+        //Cancel Order
+    public void handleCancelOrder(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        boolean ok = adminOrderDAO.cancelOrder(
+                Integer.parseInt(req.getParameter("id")),
+                req.getParameter("reason")
+        );
+        if (ok) {
+            resp.getWriter().write("OK");
+        } else {
+            resp.sendError(400, "Không thể hủy đơn hàng.");
         }
-
-        List<CartItem> cartItems = (List<CartItem>) session.getAttribute("cartItems");
-        if (cartItems != null) {
-            cartItems.removeIf(item -> String.valueOf(item.getProduct().getId()).equals(pid));
-            session.setAttribute("cartItems", cartItems);
-        }
-
-        session.setAttribute("cartCount", cart != null ? cart.size() : 0);
-
-        response.sendRedirect(request.getHeader("Referer"));
     }
 
-    // Phương thức xử lý CategoryControl
-    public void handleCategory(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
+    //Order History
+    public void handleOrderHistory(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        Account acc = requireLogin(req, resp);
+        if (acc == null) return;
 
-        String cateID = request.getParameter("cid");
-        List<Product> list = shopDao.getProductsbyCid(cateID);
-        List<Category> listC = shopDao.getAllCategory();
+        req.setAttribute("orders", adminOrderDAO.searchOrdersByUserCode(
+                acc.getCode(), null
+        ));
+        req.setAttribute("listC", adminCategoryDAO.getAllCategories());
+        req.getRequestDispatcher("view/user/orderHistory.jsp").forward(req, resp);
+    }
 
-        if (listC == null) {
-            listC = new ArrayList<>();
+    // Home
+    public void handleHome(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.setAttribute("listP", shopDao.getAllProducts());
+        loadCategories(req);
+
+        Account acc = (Account) req.getSession().getAttribute("acc");
+        if (acc != null) {
+            String code = accountDAO.getUserCodeById(acc.getId());
+            req.getSession().setAttribute("notifyList", notificationDAO.getAllByUser(code));
+            req.getSession().setAttribute("notifyCount", notificationDAO.countUnread(code));
         }
 
-        request.setAttribute("listP", list);
-        request.setAttribute("listC", listC);
+        req.getRequestDispatcher("view/user/home.jsp").forward(req, resp);
+    }
 
+    //  Add To Cart
+    public void handleAddToCart(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Account acc = requireLogin(req, resp);
+        if (acc == null) return;
+        int pid;
+        int qty = 1;
         try {
-            int cid = Integer.parseInt(cateID);
-            request.setAttribute("activeCid", cid);
+            pid = Integer.parseInt(req.getParameter("pid"));
+            qty = Integer.parseInt(req.getParameter("quantity"));
         } catch (NumberFormatException e) {
-            request.setAttribute("activeCid", null);
-        }
-
-        request.getRequestDispatcher("view/user/store.jsp").forward(request, response);
-    }
-
-    // Phương thức xử lý CheckoutControl
-    public void handleCheckoutGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession();
-        Account acc = (Account) session.getAttribute("acc");
-        if (acc == null) {
-            response.sendRedirect("view/acc/login.jsp");
+            resp.sendRedirect(Optional.ofNullable(req.getHeader("Referer")).orElse("home"));
             return;
         }
 
-        List<Category> listC = adminCategoryDAO.getAllCategories();
-        session.setAttribute("listC", listC);
-
-        Map<String, ?> cartRaw = (Map<String, ?>) session.getAttribute("cart");
-        List<CartItem> cartItems = new ArrayList<>();
-        AdminProductDAO productDAO = new AdminProductDAO();
-        double total = 0;
-        List<String> outOfStockMessages = new ArrayList<>();
-        if (cartRaw != null) {
-            for (Map.Entry<String, ?> entry : cartRaw.entrySet()) {
-                try {
-                    int productId = Integer.parseInt(entry.getKey());
-                    int quantity = (entry.getValue() instanceof String)
-                            ? Integer.parseInt((String) entry.getValue())
-                            : (Integer) entry.getValue();
-
-                    Product p = productDAO.getProductById(productId);
-                    if (p != null) {
-                        if (p.getQuantity() < quantity) {
-                            outOfStockMessages.add("Sản phẩm '" + p.getName() + "' chỉ còn " + p.getQuantity() + " sản phẩm trong kho.");
-                            continue;
-                        }
-
-                        CartItem item = new CartItem(p, quantity);
-                        cartItems.add(item);
-                        total += p.getPrice() * quantity;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        session.setAttribute("cartList", cartItems.isEmpty() ? null : cartItems);
-        session.setAttribute("cartTotal", total);
-
-        int count = 0;
-        for (CartItem item : cartItems) {
-            count += item.getQuantity();
-        }
-        session.setAttribute("cartCount", count);
-
-        // Truyền thông báo lỗi (nếu có) về JSP
-        if (!outOfStockMessages.isEmpty()) {
-            request.setAttribute("outOfStockMessages", outOfStockMessages);
-        }
-
-        request.getRequestDispatcher("view/user/checkout.jsp").forward(request, response);
-    }
-
-
-    public void handleCheckoutPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        HttpSession session = request.getSession();
-        Account acc = (Account) session.getAttribute("acc");
-
-        if (acc == null) {
-            response.sendRedirect("view/acc/login.jsp");
-            return;
-        }
-
-        // 👉 Xử lý tăng/giảm số lượng sản phẩm
-        String action = request.getParameter("action");
-        String productIdStr = request.getParameter("productId");
-        String operation = request.getParameter("operation");
-
-        System.out.println("DEBUG: action = " + action + ", productId = " + productIdStr + ", operation = " + operation);
-
-        if ("updateQuantity".equals(action)) {
-            List<CartItem> cartItems = (List<CartItem>) session.getAttribute("cartList");
-            if (cartItems == null) {
-                cartItems = new ArrayList<>();
-                session.setAttribute("cartList", cartItems);
-            }
-
-            if (productIdStr != null && !productIdStr.isEmpty() && operation != null) {
-                try {
-                    int productId = Integer.parseInt(productIdStr);
-
-                    Iterator<CartItem> iterator = cartItems.iterator();
-                    while (iterator.hasNext()) {
-                        CartItem item = iterator.next();
-                        if (item.getProduct().getId() == productId) {
-                            System.out.println("DEBUG: Trước cập nhật: " + item.getQuantity());
-
-                            if ("increase".equals(operation)) {
-                                item.setQuantity(item.getQuantity() + 1);
-                            } else if ("decrease".equals(operation)) {
-                                int newQty = item.getQuantity() - 1;
-                                if (newQty <= 0) {
-                                    iterator.remove();
-                                } else {
-                                    item.setQuantity(newQty);
-                                }
-                            }
-
-                            System.out.println("DEBUG: Sau cập nhật: " + item.getQuantity());
-                            break;
-                        }
-                    }
-
-                    // Tính lại tổng tiền và số lượng
-                    double total = 0;
-                    int totalQuantity = 0;
-                    for (CartItem item : cartItems) {
-                        total += item.getQuantity() * item.getProduct().getPrice();
-                        totalQuantity += item.getQuantity();
-                    }
-
-                    session.setAttribute("cartList", cartItems); // cập nhật lại giỏ
-                    session.setAttribute("cartTotal", total);
-                    session.setAttribute("cartCount", totalQuantity);
-
-                    // 👉 Cập nhật lại cart Map để handleCheckoutGet hiển thị đúng
-                    Map<String, Integer> cartMap = new HashMap<>();
-                    for (CartItem item : cartItems) {
-                        cartMap.put(String.valueOf(item.getProduct().getId()), item.getQuantity());
-                    }
-                    session.setAttribute("cart", cartMap);
-
-                    response.setStatus(HttpServletResponse.SC_OK);
-                    return;
-
-                } catch (NumberFormatException e) {
-                    e.printStackTrace();
-                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    return;
-                }
-            } else {
-                System.out.println("DEBUG: Thiếu productId hoặc operation.");
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                return;
-            }
-        }
-
-        // 👉 Xử lý đặt hàng bình thường
-        List<CartItem> cartItems = (List<CartItem>) session.getAttribute("cartList");
-        if (cartItems == null) {
-            cartItems = new ArrayList<>();
-            session.setAttribute("cartList", cartItems);
-        }
-
-        Double total = (Double) session.getAttribute("cartTotal");
-        if (cartItems.isEmpty() || total == null) {
-            request.setAttribute("message", "Giỏ hàng trống!");
-            handleCheckoutGet(request, response);
-            return;
-        }
-
-        String name, email, phone, address;
-        boolean isGuest = request.getParameter("isGuestOrder") != null;
-
-        if (isGuest) {
-            name = request.getParameter("guestFullName");
-            email = request.getParameter("guestEmail");
-            phone = request.getParameter("guestPhone");
-            address = request.getParameter("guestAddress");
-        } else {
-            name = acc.getFullName();
-            email = acc.getEmail();
-            phone = acc.getPhone();
-            address = acc.getAddress();
-        }
-
-        // Lấy userCode từ DB
-        String userCode = null;
         try {
-            userCode = accountDAO.getUserCodeById(acc.getId());
+            cartDAO.addOrUpdateItem(acc.getCode(), pid, qty);
         } catch (Exception e) {
             e.printStackTrace();
-            session.setAttribute("flash", "Lỗi lấy thông tin người dùng.");
-            response.sendRedirect("home");
-            return;
         }
-
-        if (userCode == null) {
-            session.setAttribute("flash", "Không tìm thấy mã người dùng.");
-            response.sendRedirect("home");
-            return;
-        }
-
-        boolean success = adminOrderDAO.createOrder(userCode, name, email, phone, address, cartItems, total);
-
-        if (success) {
-            session.removeAttribute("cart");
-            session.removeAttribute("cartCount");
-            session.removeAttribute("cartTotal");
-            session.removeAttribute("cartList");
-            session.removeAttribute("cartItems");
-
-            session.setAttribute("cartList", new ArrayList<CartItem>());
-            session.setAttribute("cartItems", new ArrayList<CartItem>());
-            session.setAttribute("cartCount", 0);
-            session.setAttribute("cartTotal", 0.0);
-
-            List<Notification> notifyList = adminNotificationDAO.getUnreadNotificationsByUser(acc.getCode());
-            session.setAttribute("notifyList", notifyList);
-            session.setAttribute("notifyCount", notifyList.size());
-
-            session.setAttribute("flash", "Đặt hàng thành công!");
-        } else {
-            session.setAttribute("flash", "Có lỗi xảy ra khi đặt hàng.");
-        }
-
-        response.sendRedirect("home");
-    }
-
-    public void handleCancelOrder(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        int orderId = Integer.parseInt(request.getParameter("id"));
-        String reason = request.getParameter("reason");
-        boolean success = adminOrderDAO.cancelOrder(orderId, reason);
-
-        response.setContentType("text/plain");
-        if (success) {
-            response.getWriter().write("OK");
-        } else {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Không thể hủy đơn hàng.");
-        }
-    }
-
-
-
-    // Phương thức xử lý OrderHistoryControl
-    public void handleOrderHistory(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession();
-        Account acc = (Account) session.getAttribute("acc");
-
-        if (acc == null) {
-            response.sendRedirect("view/acc/login.jsp");
-            return;
-        }
-
-        // Sử dụng userCode thay vì userId
-        String userCode = accountDAO.getUserCodeById(acc.getId());
-        List<Order> orders = adminOrderDAO.searchOrdersByUserCode(userCode, null);
-        List<Category> listC = adminCategoryDAO.getAllCategories();
-
-        request.setAttribute("orders", orders);
-        request.setAttribute("listC", listC);
-
-        request.getRequestDispatcher("view/user/orderHistory.jsp").forward(request, response);
-    }
-
-    // Phương thức xử lý HomeControl
-    public void handleHome(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-
-        List<Product> list = shopDao.getAllProducts();
-        List<Category> listC = shopDao.getAllCategory();
-
-        request.setAttribute("listP", list);
-        request.setAttribute("listC", listC);
-
-        HttpSession session = request.getSession();
-        Account acc = (Account) session.getAttribute("acc");
-
-        if (acc != null) {
-            // Sử dụng userCode thay vì userId
-            String userCode = accountDAO.getUserCodeById(acc.getId());
-            List<Notification> notifyList = notificationDAO.getAllByUser(userCode);
-            int unreadCount = notificationDAO.countUnread(userCode);
-
-            session.setAttribute("notifyList", notifyList);
-            session.setAttribute("notifyCount", unreadCount);
-        }
-
-        request.getRequestDispatcher("view/user/home.jsp").forward(request, response);
-    }
-
-    // Phương thức xử lý AddToCartControl
-    public void handleAddToCart(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        HttpSession session = request.getSession();
-
-        if (session.getAttribute("acc") == null) {
-            response.sendRedirect("view/acc/login.jsp");
-            return;
-        }
-
-        String pid = request.getParameter("pid");
-        String quantityStr = request.getParameter("quantity");
-        int quantity = 1;
-        try {
-            quantity = Integer.parseInt(quantityStr);
-            if (quantity <= 0) quantity = 1;
-        } catch (NumberFormatException e) {
-            quantity = 1;
-        }
-
-        if (pid == null || pid.isEmpty()) {
-            response.sendRedirect("home");
-            return;
-        }
-
-        Map<String, Integer> cart = (Map<String, Integer>) session.getAttribute("cart");
-        if (cart == null) {
-            cart = new HashMap<>();
-        }
-
-        cart.put(pid, cart.getOrDefault(pid, 0) + quantity);
-        session.setAttribute("cart", cart);
-
-        int totalItems = cart.values().stream().mapToInt(i -> i).sum();
-        session.setAttribute("cartCount", totalItems);
-
-        AdminProductDAO dao = new AdminProductDAO();
-        List<CartItem> cartItems = new ArrayList<>();
-        double cartTotal = 0;
-
-        for (Map.Entry<String, Integer> entry : cart.entrySet()) {
-            try {
-                int productId = Integer.parseInt(entry.getKey());
-                Product p = dao.getProductById(productId);
-                if (p != null) {
-                    CartItem item = new CartItem(p, entry.getValue());
-                    cartItems.add(item);
-                    cartTotal += item.getTotalPrice();
-                }
-            } catch (NumberFormatException e) {
-                e.printStackTrace();
-            }
-        }
-
-        session.setAttribute("cartItems", cartItems);
-        session.setAttribute("cartTotal", cartTotal);
-
-        String referer = request.getHeader("Referer");
-        response.sendRedirect(referer != null ? referer : "home");
+        updateCartSession(req.getSession(), acc.getCode());
+        resp.sendRedirect(Optional.ofNullable(req.getHeader("Referer")).orElse("home"));
     }
 }

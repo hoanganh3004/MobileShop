@@ -18,4 +18,10 @@ public class RemoveCartItemControl extends HttpServlet {
             throws ServletException, IOException {
         userService.handleRemoveCartItem(request, response);
     }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        userService.handleRemoveCartItem(req, resp);
+    }
+
 }

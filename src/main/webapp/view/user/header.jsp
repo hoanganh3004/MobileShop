@@ -251,14 +251,6 @@
                                 </c:otherwise>
                             </c:choose>
                         </div>
-
-                        <!-- MENU -->
-                        <div class="menu-toggle header-icon">
-                            <a href="#">
-                                <i class="fa fa-bars"></i>
-                                <span>Menu</span>
-                            </a>
-                        </div>
                     </div>
                 </div>
             </div>

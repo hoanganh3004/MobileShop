@@ -19,9 +19,4 @@ public class AddToCartControl extends HttpServlet {
         userService.handleAddToCart(request, response);
     }
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        userService.handleAddToCart(request, response);
-    }
 }

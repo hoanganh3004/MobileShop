@@ -79,22 +79,35 @@
                             <div><strong>Sản phẩm</strong></div>
                             <div><strong>Tổng tiền</strong></div>
                         </div>
-
                         <div class="order-products">
-                            <c:forEach var="item" items="${sessionScope.cartList}">
-                                <div class="order-col">
+                            <c:forEach var="item" items="${sessionScope.cartItems}">
+                                <div class="order-col" style="position: relative; padding-top: 16px;">
+
+                                    <!-- Nút Xóa -->
+                                    <button type="button" class="btn-remove-item" data-id="${item.product.id}"
+                                            style="position: absolute; top: 4px; right: 4px; background: none; border: none; font-size: 18px; color: red; cursor: pointer;">
+                                        &times;
+                                    </button>
+
+                                    <!-- Nội dung sản phẩm -->
                                     <div style="display: flex; align-items: center;">
                                         <img src="${pageContext.request.contextPath}/image?file=${fn:substringAfter(item.product.image, 'image\\')}"
-                                             alt="${item.product.name}" width="40" height="40"
-                                             style="margin-right: 8px; border-radius: 4px;">
-                                        <div style="display: inline-flex; align-items: center;">
-                                            <button type="button" class="btn-decrease" data-id="${item.product.id}" style="border:none;background:#eee;padding:4px 8px;">-</button>
-                                            <span style="margin: 0 8px;">${item.quantity}</span>
-                                            <button type="button" class="btn-increase" data-id="${item.product.id}" style="border:none;background:#eee;padding:4px 8px;">+</button>
+                                             alt="${item.product.name}" width="40" height="40" style="margin-right: 8px; border-radius: 4px;">
+
+                                        <div style="display: inline-flex; align-items: center; margin-left: 8px;">
+                                            <button type="button" class="btn-quantity btn-decrease"
+                                                    data-id="${item.product.id}"
+                                                    style="border:none;background:#eee;padding:4px 8px;">-</button>
+                                            <span class="quantity-display" style="margin: 0 8px;">${item.quantity}</span>
+                                            <button type="button" class="btn-quantity btn-increase"
+                                                    data-id="${item.product.id}"
+                                                    style="border:none;background:#eee;padding:4px 8px;">+</button>
                                             <span style="margin-left: 8px;">${item.product.name}</span>
                                         </div>
                                     </div>
-                                    <div style="font-size: 14px;">
+
+                                    <!-- Giá -->
+                                    <div style="text-align:right;">
                                             ${item.quantity} x $<fmt:formatNumber value="${item.product.price}" type="number" minFractionDigits="2"/>
                                         = <strong>$<fmt:formatNumber value="${item.quantity * item.product.price}" type="number" minFractionDigits="2"/></strong>
                                     </div>
@@ -109,11 +122,12 @@
 
                         <div class="order-col">
                             <div><strong>Số tiền phải thanh toán</strong></div>
-                            <div><strong class="order-total">$<fmt:formatNumber value="${sessionScope.cartTotal}" type="number" minFractionDigits="2"/></strong></div>
+                            <div><strong class="order-total">$<fmt:formatNumber value="${not empty sessionScope.cartTotal ? sessionScope.cartTotal : 0}"
+                                                                                type="number" minFractionDigits="2"/></strong></div>
                         </div>
                     </div>
 
-                    <c:if test="${not empty sessionScope.cartList && empty outOfStockMessages}">
+                    <c:if test="${not empty sessionScope.cartItems && !hasBlockingStock}">
                         <div class="payment-method text-center mt-3">
                             <button type="submit" class="primary-btn order-submit">Đặt hàng</button>
                         </div>
@@ -130,34 +144,60 @@
 <script src="<%= request.getContextPath() %>/js/jquery.min.js"></script>
 <script src="<%= request.getContextPath() %>/js/bootstrap.min.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const checkbox = document.getElementById("shiping-address");
-        const guestInputs = document.querySelectorAll('.caption input');
-        function toggleRequired() {
-            guestInputs.forEach(input => input.required = checkbox.checked);
-        }
-        checkbox.addEventListener("change", toggleRequired);
-        toggleRequired();
+    (function () {
+        const base = '<%= request.getContextPath() %>';
 
-        document.querySelectorAll(".btn-increase, .btn-decrease").forEach(btn => {
-            btn.addEventListener("click", function () {
-                const productId = this.dataset.id;
-                const operation = this.classList.contains("btn-increase") ? "increase" : "decrease";
+        function init() {
+            // Tăng / giảm số lượng
+            document.querySelectorAll(".btn-increase, .btn-decrease").forEach(btn => {
+                btn.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    const productId = this.dataset.id;
+                    const operation = this.classList.contains("btn-increase") ? "increase" : "decrease";
 
-                fetch("checkout", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    },
-                    body: new URLSearchParams({
-                        action: "updateQuantity",
-                        productId: productId,
-                        operation: operation
+                    fetch(base + "/checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams({ action: "updateQuantity", productId, operation })
                     })
-                }).then(() => window.location.reload());
+                        .then(async (response) => {
+                            const html = await response.text();
+                            if (!response.ok) { alert("Có lỗi xảy ra khi cập nhật giỏ hàng."); return; }
+                            if (html && html.trim().length > 0) { document.open(); document.write(html); document.close(); }
+                            else { location.reload(); }
+                        })
+                        .catch(() => alert("Không thể kết nối máy chủ."));
+                });
             });
-        });
-    });
+
+            // Xóa sản phẩm
+            document.querySelectorAll(".btn-remove-item").forEach(btn => {
+                btn.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    if (!confirm("Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?")) return;
+                    const productId = this.dataset.id;
+
+                    fetch(base + '/remove-cart-item', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({ pid: productId })
+                    })
+                        .then(response => {
+                            if (!response.ok) { alert("Có lỗi xảy ra khi xóa sản phẩm."); return; }
+                            location.reload();
+                        })
+                        .catch(() => alert("Không thể kết nối máy chủ."));
+                });
+            });
+        }
+
+        // Chạy ngay nếu DOM đã sẵn sàng, còn chưa thì đợi
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    })();
 </script>
 
 </body>

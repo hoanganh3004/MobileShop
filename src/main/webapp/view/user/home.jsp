@@ -3,8 +3,6 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,20 +31,49 @@
     <!-- Custom stlylesheet -->
     <link type="text/css" rel="stylesheet" href="<%= request.getContextPath() %>/css/style.css"/>
 
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
+    <style>
+        /* Toast CSS */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+        }
+        .toast-message {
+            background-color: #28a745;
+            color: white;
+            padding: 20px 25px;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: none;
+            animation: fadeInOut 4s ease-in-out forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10%, 90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+    </style>
 
 </head>
 <body>
 <jsp:include page="header.jsp"></jsp:include>
+
+<!-- thông báo đặt hàng -->
+<c:if test="${not empty sessionScope.flash}">
+    <div class="toast-container">
+        <div class="toast-message">
+                ${sessionScope.flash}
+        </div>
+    </div>
+    <c:remove var="flash" scope="session"/>
+</c:if>
+
 <!-- SECTION -->
 <div class="section">
-    <!-- container -->
     <div class="container">
-        <!-- row -->
         <div class="row">
             <!-- shop -->
             <div class="col-md-4 col-xs-6">
@@ -62,7 +89,6 @@
             </div>
             <!-- /shop -->
 
-            <!-- shop -->
             <div class="col-md-4 col-xs-6">
                 <div class="shop">
                     <div class="shop-img">
@@ -74,9 +100,7 @@
                     </div>
                 </div>
             </div>
-            <!-- /shop -->
 
-            <!-- shop -->
             <div class="col-md-4 col-xs-6">
                 <div class="shop">
                     <div class="shop-img">
@@ -88,37 +112,26 @@
                     </div>
                 </div>
             </div>
-            <!-- /shop -->
         </div>
-        <!-- /row -->
     </div>
-    <!-- /container -->
 </div>
 <!-- /SECTION -->
 
-<!-- SECTION -->
+<!-- SECTION sản phẩm mới -->
 <div class="section">
-    <!-- container -->
     <div class="container">
-        <!-- row -->
         <div class="row">
-
-            <!-- section title -->
             <div class="col-md-12">
                 <div class="section-title">
                     <h3 class="title">Sản phẩm mới</h3>
                 </div>
             </div>
-            <!-- /section title -->
 
-            <!-- Products tab & slick -->
             <div class="col-md-12">
                 <div class="row">
                     <div class="products-tabs">
-                        <!-- tab -->
                         <div id="tab1" class="tab-pane active">
                             <div class="products-slick" data-nav="#slick-nav-1">
-                                <!-- product -->
                                 <c:forEach var="p" items="${listP}">
                                     <div class="product">
                                         <div class="product-img">
@@ -140,6 +153,7 @@
                                         <div class="add-to-cart">
                                             <form action="${pageContext.request.contextPath}/add-to-cart" method="post">
                                                 <input type="hidden" name="pid" value="${p.id}" />
+                                                <input type="hidden" name="quantity" value="1" />
                                                 <button type="submit" class="add-to-cart-btn">
                                                     <i class="fa fa-shopping-cart"></i> thêm vào giỏ hàng
                                                 </button>
@@ -147,55 +161,28 @@
                                         </div>
                                     </div>
                                 </c:forEach>
-                                <!-- /product -->
                             </div>
                             <div id="slick-nav-1" class="products-slick-nav"></div>
                         </div>
-                        <!-- /tab -->
                     </div>
                 </div>
             </div>
-            <!-- Products tab & slick -->
         </div>
-        <!-- /row -->
     </div>
-    <!-- /container -->
 </div>
 <!-- /SECTION -->
 
 <!-- HOT DEAL SECTION -->
 <div id="hot-deal" class="section">
-    <!-- container -->
     <div class="container">
-        <!-- row -->
         <div class="row">
             <div class="col-md-12">
                 <div class="hot-deal">
                     <ul class="hot-deal-countdown">
-                        <li>
-                            <div>
-                                <h3>02</h3>
-                                <span>Days</span>
-                            </div>
-                        </li>
-                        <li>
-                            <div>
-                                <h3>10</h3>
-                                <span>Hours</span>
-                            </div>
-                        </li>
-                        <li>
-                            <div>
-                                <h3>34</h3>
-                                <span>Mins</span>
-                            </div>
-                        </li>
-                        <li>
-                            <div>
-                                <h3>60</h3>
-                                <span>Secs</span>
-                            </div>
-                        </li>
+                        <li><div><h3>02</h3><span>Days</span></div></li>
+                        <li><div><h3>10</h3><span>Hours</span></div></li>
+                        <li><div><h3>34</h3><span>Mins</span></div></li>
+                        <li><div><h3>60</h3><span>Secs</span></div></li>
                     </ul>
                     <h2 class="text-uppercase">hot deal this week</h2>
                     <p>New Collection Up to 50% OFF</p>
@@ -203,16 +190,13 @@
                 </div>
             </div>
         </div>
-        <!-- /row -->
     </div>
-    <!-- /container -->
 </div>
 <!-- /HOT DEAL SECTION -->
+
 <!-- NEWSLETTER -->
 <div id="newsletter" class="section">
-    <!-- container -->
     <div class="container">
-        <!-- row -->
         <div class="row">
             <div class="col-md-12">
                 <div class="newsletter">
@@ -222,28 +206,20 @@
                         <button class="newsletter-btn"><i class="fa fa-envelope"></i> Subscribe</button>
                     </form>
                     <ul class="newsletter-follow">
-                        <li>
-                            <a href="#"><i class="fa fa-facebook"></i></a>
-                        </li>
-                        <li>
-                            <a href="#"><i class="fa fa-twitter"></i></a>
-                        </li>
-                        <li>
-                            <a href="#"><i class="fa fa-instagram"></i></a>
-                        </li>
-                        <li>
-                            <a href="#"><i class="fa fa-pinterest"></i></a>
-                        </li>
+                        <li><a href="#"><i class="fa fa-facebook"></i></a></li>
+                        <li><a href="#"><i class="fa fa-twitter"></i></a></li>
+                        <li><a href="#"><i class="fa fa-instagram"></i></a></li>
+                        <li><a href="#"><i class="fa fa-pinterest"></i></a></li>
                     </ul>
                 </div>
             </div>
         </div>
-        <!-- /row -->
     </div>
-    <!-- /container -->
 </div>
 <!-- /NEWSLETTER -->
+
 <jsp:include page="footer.jsp"></jsp:include>
+
 <!-- jQuery Plugins -->
 <script src="js/jquery.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
@@ -251,6 +227,14 @@
 <script src="js/nouislider.min.js"></script>
 <script src="js/jquery.zoom.min.js"></script>
 <script src="js/main.js"></script>
+
+<script>
+    $(document).ready(function () {
+        if ($('.toast-message').length) {
+            $('.toast-message').fadeIn(300).delay(3000).fadeOut(500);
+        }
+    });
+</script>
 
 </body>
 </html>

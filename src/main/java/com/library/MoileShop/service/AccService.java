@@ -5,6 +5,7 @@ import com.library.MoileShop.dao.AdminOrderDAO;
 import com.library.MoileShop.dao.CartDAO;
 import com.library.MoileShop.dao.AccountDAO;
 import com.library.MoileShop.entity.Account;
+import com.library.MoileShop.entity.CartItem;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -18,6 +19,7 @@ import org.mindrot.jbcrypt.BCrypt;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Properties;
 
 public class AccService {
@@ -34,7 +36,7 @@ public class AccService {
         this.accountDAO = new AccountDAO();
     }
 
-    // ✅ Sinh mật khẩu ngẫu nhiên
+    //  Sinh mật khẩu ngẫu nhiên
     public String generateRandomPassword(int length) {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         SecureRandom random = new SecureRandom();
@@ -79,7 +81,7 @@ public class AccService {
         try {
             Message message = new MimeMessage(session);
 
-            // 👇 Hiển thị tên người gửi: MobileShop
+            //  Hiển thị tên người gửi: MobileShop
             message.setFrom(new InternetAddress(fromEmail, "MobileShop", "UTF-8"));
 
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
@@ -87,7 +89,7 @@ public class AccService {
 
             message.setSubject(MimeUtility.encodeText(subject, "UTF-8", null));
 
-            // 👇 Nội dung HTML UTF-8 để tránh lỗi font tiếng Việt
+            // Nội dung HTML UTF-8 để tránh lỗi font tiếng Việt
             message.setContent(content, "text/html; charset=UTF-8");
 
             Transport.send(message);
@@ -98,7 +100,7 @@ public class AccService {
     }
 
 
-    // ✅ Xử lý quên mật khẩu
+    //  Xử lý quên mật khẩu
     public void handleForgotPassword(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String email = request.getParameter("email");
@@ -132,7 +134,7 @@ public class AccService {
         request.getRequestDispatcher("view/acc/login.jsp").forward(request, response);
     }
 
-    // ✅ Xử lý đăng xuất
+    //  Xử lý đăng xuất
     public void handleLogout(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         HttpSession session = request.getSession(false);
@@ -212,12 +214,21 @@ public class AccService {
                 HttpSession session = request.getSession();
                 session.setAttribute("acc", acc);
 
+                // Lấy userCode từ account ID
                 String userCode = accountDAO.getUserCodeById(acc.getId());
-                int orderCount = orderDAO.countOrdersByUser(userCode);
-                int cartCount = cartDAO.countItemsByUser(userCode);
-                session.setAttribute("orderCount", orderCount);
-                session.setAttribute("cartCount", cartCount);
+                acc.setCode(userCode);
 
+                // Lấy danh sách giỏ hàng từ DB
+                List<CartItem> cartItems = cartDAO.getCartItemsByUser(userCode);
+                int totalItems = cartItems.stream().mapToInt(CartItem::getQuantity).sum();
+                double cartTotal = cartItems.stream().mapToDouble(CartItem::getTotalPrice).sum();
+
+                // Set giỏ hàng vào session
+                session.setAttribute("cartItems", cartItems);
+                session.setAttribute("cartCount", totalItems);
+                session.setAttribute("cartTotal", cartTotal);
+
+                // Điều hướng
                 if ("admin".equalsIgnoreCase(acc.getRole())) {
                     response.sendRedirect(request.getContextPath() + "/admin-dashboard");
                 } else {

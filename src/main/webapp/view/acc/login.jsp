@@ -81,7 +81,7 @@
                                     <h1 class="h4 text-gray-900 mb-4">Chào mừng bạn đến với bình nguyên vô tận!</h1>
                                 </div>
 
-                                <!-- ✨ HIỂN THỊ LỖI -->
+                                <!--HIỂN THỊ LỖI -->
                                 <c:if test="${not empty error}">
                                     <div class="alert alert-danger text-center">
                                             ${error}

@@ -10,6 +10,7 @@ import com.library.MoileShop.entity.*;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
 import java.io.*;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -90,7 +91,7 @@ public class AdminService {
         if (keyword == null) keyword = "";
 
         int page = 1;
-        int size = 5;
+        int size = 10;
 
         try {
             String pageParam = request.getParameter("page");
@@ -144,7 +145,7 @@ public class AdminService {
         request.setAttribute("pageSize", size);
         request.getRequestDispatcher("view/ad/adminNotification.jsp").forward(request, response);
     }
-
+    // xử lý thống kê
     public void handleDashboardStatistics(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         int totalOrders = orderDAO.countOrders(null, null);
@@ -161,32 +162,39 @@ public class AdminService {
     }
 
     // Xử lý danh sách sản phẩm
-        public void handleSearchProducts(HttpServletRequest request, HttpServletResponse response)
-                throws ServletException, IOException {
-            String keyword = request.getParameter("keyword");
-            if (keyword == null) keyword = "";
+    public void handleSearchProducts(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String keyword = request.getParameter("keyword");
+        if (keyword == null) keyword = "";
 
-            int page = 1;
-            int size = 5;
-            try {
-                String pageParam = request.getParameter("page");
-                if (pageParam != null) {
-                    page = Integer.parseInt(pageParam);
-                }
-            } catch (NumberFormatException ignored) {}
+        int page = 1;
+        int size = 5;
 
-            int total = productDAO.countProducts(keyword);
-            int totalPage = (int) Math.ceil(total * 1.0 / size);
-            int offset = (page - 1) * size;
+        try {
+            String pageParam = request.getParameter("page");
+            if (pageParam != null) {
+                page = Integer.parseInt(pageParam);
+            }
 
-            List<Product> productList = productDAO.search(keyword, offset, size);
-            request.setAttribute("productList", productList);
-            request.setAttribute("totalPage", totalPage);
-            request.setAttribute("currentPage", page);
-            request.setAttribute("keyword", keyword);
-            request.setAttribute("pageSize", size);
-            request.getRequestDispatcher("/view/ad/adminProduct.jsp").forward(request, response);
-        }
+            String sizeParam = request.getParameter("size");
+            if (sizeParam != null) {
+                size = Integer.parseInt(sizeParam);
+            }
+        } catch (NumberFormatException ignored) {}
+
+        int total = productDAO.countProducts(keyword);
+        int totalPage = (int) Math.ceil(total * 1.0 / size);
+        int offset = (page - 1) * size;
+
+        List<Product> productList = productDAO.search(keyword, offset, size);
+        request.setAttribute("productList", productList);
+        request.setAttribute("totalPage", totalPage);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("keyword", keyword);
+        request.setAttribute("pageSize", size);
+        request.getRequestDispatcher("/view/ad/adminProduct.jsp").forward(request, response);
+    }
+
 
     // Xử lý thêm sản phẩm
     public void handleAddProduct(HttpServletRequest request, HttpServletResponse response)
@@ -203,7 +211,7 @@ public class AdminService {
             int categoryId = Integer.parseInt(request.getParameter("category_id"));
 
             if (!productDAO.isCategoryExists(categoryId)) {
-                session.setAttribute("msg", "❌ Danh mục không hợp lệ hoặc không tồn tại!");
+                session.setAttribute("msg", " Danh mục không hợp lệ hoặc không tồn tại!");
                 session.setAttribute("msgType", "danger");
                 response.sendRedirect("admin-product");
                 return;
@@ -215,7 +223,7 @@ public class AdminService {
             Part filePart = request.getPart("image");
             String submittedFileName = filePart.getSubmittedFileName();
             if (submittedFileName == null || submittedFileName.trim().isEmpty()) {
-                session.setAttribute("msg", "❌ Vui lòng chọn ảnh!");
+                session.setAttribute("msg", " Vui lòng chọn ảnh!");
                 session.setAttribute("msgType", "danger");
                 response.sendRedirect("admin-product");
                 return;
@@ -236,7 +244,7 @@ public class AdminService {
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-                session.setAttribute("msg", "❌ Không thể lưu ảnh: " + e.getMessage());
+                session.setAttribute("msg", " Không thể lưu ảnh: " + e.getMessage());
                 session.setAttribute("msgType", "danger");
                 response.sendRedirect("admin-product");
                 return;
@@ -244,16 +252,16 @@ public class AdminService {
 
             Product p = new Product(0, name, masp, price, description, IMAGE_SAVE_PATH + "\\" + fileName, quantity, categoryId);
             boolean success = productDAO.addProduct(p);
-            session.setAttribute("msg", success ? "✅ Thêm sản phẩm thành công!" : "❌ Thêm sản phẩm thất bại!");
+            session.setAttribute("msg", success ? " Thêm sản phẩm thành công!" : "Thêm sản phẩm thất bại!");
             session.setAttribute("msgType", success ? "success" : "danger");
             System.out.println("Add product result: " + success + ", categoryId: " + categoryId);
         } catch (NumberFormatException e) {
             e.printStackTrace();
-            session.setAttribute("msg", "❌ Dữ liệu đầu vào không hợp lệ!");
+            session.setAttribute("msg", " Dữ liệu đầu vào không hợp lệ!");
             session.setAttribute("msgType", "danger");
         } catch (Exception e) {
             e.printStackTrace();
-            session.setAttribute("msg", "❌ Lỗi xử lý dữ liệu: " + e.getMessage());
+            session.setAttribute("msg", " Lỗi xử lý dữ liệu: " + e.getMessage());
             session.setAttribute("msgType", "danger");
         }
         response.sendRedirect("admin-product");
@@ -274,9 +282,16 @@ public class AdminService {
         c.setCname(name);
         c.setDescription(description);
 
-        categoryDAO.addCategory(c);
-        response.sendRedirect("admin-category");
+        boolean result = categoryDAO.addCategory(c);
+
+        // Chuyển hướng về lại admin-category.jsp với thông báo
+        if (result) {
+            response.sendRedirect("admin-category?success=" + URLEncoder.encode("Thêm thành công", "UTF-8"));
+        } else {
+            response.sendRedirect("admin-category?error=" + URLEncoder.encode("Thêm thất bại", "UTF-8"));
+        }
     }
+
 
     // Xử lý tạo thông báo
     public void handleCreateNotification(HttpServletRequest request, HttpServletResponse response)
@@ -488,14 +503,14 @@ public class AdminService {
             boolean deleted = productDAO.deleteProductById(id);
 
             if (deleted) {
-                session.setAttribute("msg", "✅ Xóa sản phẩm thành công!");
+                session.setAttribute("msg", " Xóa sản phẩm thành công!");
                 session.setAttribute("msgType", "success");
             } else {
-                session.setAttribute("msg", "❌ Không tìm thấy sản phẩm cần xóa!");
+                session.setAttribute("msg", " Không tìm thấy sản phẩm cần xóa!");
                 session.setAttribute("msgType", "warning");
             }
         } catch (Exception e) {
-            session.setAttribute("msg", "❌ Lỗi khi xóa sản phẩm: " + e.getMessage());
+            session.setAttribute("msg", " Lỗi khi xóa sản phẩm: " + e.getMessage());
             session.setAttribute("msgType", "danger");
             e.printStackTrace();
         }
@@ -507,7 +522,7 @@ public class AdminService {
             throws ServletException, IOException {
         try {
             int orderId = Integer.parseInt(request.getParameter("id"));
-            System.out.println("🛠️ Xem chi tiết đơn hàng ID = " + orderId);
+            System.out.println(" Xem chi tiết đơn hàng ID = " + orderId);
 
             Order order = orderDAO.getOrderById(orderId);
             if (order == null) {
@@ -516,7 +531,7 @@ public class AdminService {
             }
 
             List<OrderItem> items = orderDAO.getOrderItemsByOrderId(orderId);
-            System.out.println("✅ Tìm thấy " + items.size() + " sản phẩm trong đơn hàng.");
+            System.out.println("Tìm thấy " + items.size() + " sản phẩm trong đơn hàng.");
 
             request.setAttribute("order", order);
             request.setAttribute("items", items);
@@ -530,12 +545,31 @@ public class AdminService {
     // Xử lý xóa danh mục
     public void handleDeleteCategory(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+
+        String message;
+        String redirectURL = "admin-category";
+
         try {
             int cid = Integer.parseInt(request.getParameter("id"));
-            categoryDAO.deleteCategory(cid);
-        } catch (Exception ignored) {
+            boolean success = categoryDAO.deleteCategory(cid);
+
+            if (success) {
+                message = "Xóa thành công!";
+                redirectURL += "?success=" + URLEncoder.encode(message, "UTF-8");
+            } else {
+                message = "Không thể xóa danh mục. Có thể vì danh mục đang chứa sản phẩm.";
+                redirectURL += "?error=" + URLEncoder.encode(message, "UTF-8");
+            }
+
+        } catch (NumberFormatException e) {
+            message = "ID không hợp lệ.";
+            redirectURL += "?error=" + URLEncoder.encode(message, "UTF-8");
+        } catch (Exception e) {
+            message = "Có lỗi xảy ra trong quá trình xóa.";
+            redirectURL += "?error=" + URLEncoder.encode(message, "UTF-8");
         }
-        response.sendRedirect("admin-category");
+
+        response.sendRedirect(redirectURL);
     }
 
     // Xử lý đổi trạng thái tài khoản
@@ -565,7 +599,7 @@ public class AdminService {
             // Kiểm tra và parse id
             String idStr = request.getParameter("id");
             if (idStr == null || idStr.trim().isEmpty()) {
-                session.setAttribute("msg", "❌ ID sản phẩm không hợp lệ!");
+                session.setAttribute("msg", " ID sản phẩm không hợp lệ!");
                 session.setAttribute("msgType", "danger");
                 response.sendRedirect("admin-product");
                 return;
@@ -581,7 +615,7 @@ public class AdminService {
             String categoryIdStr = request.getParameter("category_id");
 
             if (categoryIdStr == null || categoryIdStr.trim().isEmpty()) {
-                session.setAttribute("msg", "❌ Danh mục không hợp lệ!");
+                session.setAttribute("msg", " Danh mục không hợp lệ!");
                 session.setAttribute("msgType", "danger");
                 response.sendRedirect("admin-product");
                 return;
@@ -589,7 +623,7 @@ public class AdminService {
             int categoryId = Integer.parseInt(categoryIdStr);
 
             if (priceStr == null || priceStr.trim().isEmpty()) {
-                session.setAttribute("msg", "❌ Giá không hợp lệ!");
+                session.setAttribute("msg", " Giá không hợp lệ!");
                 session.setAttribute("msgType", "danger");
                 response.sendRedirect("admin-product");
                 return;
@@ -597,7 +631,7 @@ public class AdminService {
             double price = Double.parseDouble(priceStr);
 
             if (qtyStr == null || qtyStr.trim().isEmpty()) {
-                session.setAttribute("msg", "❌ Số lượng không hợp lệ!");
+                session.setAttribute("msg", " Số lượng không hợp lệ!");
                 session.setAttribute("msgType", "danger");
                 response.sendRedirect("admin-product");
                 return;
@@ -605,7 +639,7 @@ public class AdminService {
             int quantity = Integer.parseInt(qtyStr.trim());
 
             if (!productDAO.isCategoryExists(categoryId)) {
-                session.setAttribute("msg", "❌ Danh mục không hợp lệ hoặc không tồn tại!");
+                session.setAttribute("msg", " Danh mục không hợp lệ hoặc không tồn tại!");
                 session.setAttribute("msgType", "danger");
                 response.sendRedirect("admin-product");
                 return;
@@ -635,16 +669,16 @@ public class AdminService {
 
             Product p = new Product(id, name, masp, price, description, imagePath, quantity, categoryId);
             boolean updated = productDAO.updateProduct(p);
-            session.setAttribute("msg", updated ? "✅ Cập nhật sản phẩm thành công!" : "❌ Cập nhật sản phẩm thất bại!");
+            session.setAttribute("msg", updated ? " Cập nhật sản phẩm thành công!" : " Cập nhật sản phẩm thất bại!");
             session.setAttribute("msgType", updated ? "success" : "danger");
             System.out.println("Update product result: " + updated + ", categoryId: " + categoryId);
         } catch (NumberFormatException e) {
             e.printStackTrace();
-            session.setAttribute("msg", "❌ Dữ liệu đầu vào không hợp lệ!");
+            session.setAttribute("msg", " Dữ liệu đầu vào không hợp lệ!");
             session.setAttribute("msgType", "danger");
         } catch (Exception e) {
             e.printStackTrace();
-            session.setAttribute("msg", "❌ Lỗi xử lý dữ liệu: " + e.getMessage());
+            session.setAttribute("msg", "Lỗi xử lý dữ liệu: " + e.getMessage());
             session.setAttribute("msgType", "danger");
         }
         response.sendRedirect("admin-product");
@@ -673,14 +707,6 @@ public class AdminService {
         } catch (NumberFormatException e) {
             response.sendRedirect("admin-product");
         }
-    }
-
-    // Hiển thị form thêm sản phẩm
-    public void handleAddProductForm(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        List<Category> categories = categoryDAO.getAll("");
-        request.setAttribute("categories", categories);
-        request.getRequestDispatcher("view/ad/add-product.jsp").forward(request, response);
     }
 
     // Xử lý xóa tài khoản
@@ -774,7 +800,6 @@ public class AdminService {
 
         try {
             int orderId = Integer.parseInt(orderIdRaw);
-            // Gọi lại để lấy đầy đủ order + customer + code
             Order order = orderDAO.getOrderById(orderId);
             if (order == null) {
                 response.sendRedirect("admin-order?error=notfound");
@@ -784,30 +809,7 @@ public class AdminService {
             boolean updated = orderDAO.updateOrderStatus(orderId, status, cancelReason);
 
             if (updated) {
-                // Lấy lại userCode từ order (đã fix ở getOrderById)
-                String userCode = (order.getCustomer() != null) ? order.getCustomer().getCode() : null;
-
-                // Tạo nội dung thông báo
-                String message;
-                switch (status) {
-                    case "Đang giao":
-                        message = "Đơn hàng #" + orderId + " đang được giao đến bạn.";
-                        break;
-                    case "Hoàn thành":
-                        message = "Đơn hàng #" + orderId + " đã hoàn thành.";
-                        break;
-                    case "Đã hủy":
-                        message = "Đơn hàng #" + orderId + " đã bị hủy. Lý do: " + cancelReason;
-                        break;
-                    default:
-                        message = "Trạng thái đơn hàng #" + orderId + " đã được cập nhật.";
-                }
-                
-                if (userCode != null && !userCode.isEmpty()) {
-                    orderDAO.notifyUser(userCode, message);
-                } else {
-                    System.err.println(" userCode bị null => Không gửi được thông báo.");
-                }
+                notifyUserAndSendEmail(order, orderId, status, cancelReason);
             }
 
             response.sendRedirect("admin-order");
@@ -816,6 +818,52 @@ public class AdminService {
             response.sendRedirect("admin-order?error=invalid");
         }
     }
+
+    private void notifyUserAndSendEmail(Order order, int orderId, String status, String cancelReason) {
+        String userCode = (order.getCustomer() != null) ? order.getCustomer().getCode() : null;
+
+        // Tạo nội dung thông báo
+        String message;
+        switch (status) {
+            case "Đang giao":
+                message = "Đơn hàng #" + orderId + " đang được giao đến bạn.";
+                break;
+            case "Hoàn thành":
+                message = "Đơn hàng #" + orderId + " đã hoàn thành.";
+                break;
+            case "Đã hủy":
+                message = "Đơn hàng #" + orderId + " đã bị hủy. ";
+                break;
+            default:
+                message = "Trạng thái đơn hàng #" + orderId + " đã được cập nhật thành: " + status;
+        }
+
+        // Gửi thông báo trong hệ thống
+        if (userCode != null && !userCode.isEmpty()) {
+            orderDAO.notifyUser(userCode, message);
+
+            // Gửi email nếu có địa chỉ email
+            String recipientEmail = order.getRecipientEmail();
+            if (recipientEmail != null && !recipientEmail.trim().isEmpty()) {
+                try {
+                    String subject = "Cập nhật trạng thái đơn hàng #" + orderId;
+                    String content = "<h2>Thông báo cập nhật đơn hàng</h2>"
+                            + "<p>Đơn hàng #" + orderId + " của bạn đã được cập nhật trạng thái:</p>"
+                            + "<p><strong>Trạng thái mới:</strong> " + status + "</p>"
+                            + "<p>" + message + "</p>"
+                            + "<p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>";
+
+                    AccService accService = new AccService();
+                    accService.sendEmail(recipientEmail, subject, content);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.err.println("Không thể gửi email thông báo: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+
 
 
     private void showAlert(HttpServletResponse response, String message) throws IOException {

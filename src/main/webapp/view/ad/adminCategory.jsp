@@ -4,6 +4,19 @@
 
 <h1 class="h3 mb-4 text-gray-800">📦 Quản lý danh mục sản phẩm</h1>
 
+<!-- thồng báo -->
+<c:if test="${not empty param.error || not empty param.success}">
+  <div class="alert alert-dismissible fade show
+              ${not empty param.error ? 'alert-danger' : 'alert-success'}"
+       role="alert">
+    <strong>${not empty param.error ? 'Lỗi:' : 'Thành công:'}</strong>
+      ${not empty param.error ? param.error : param.success}
+    <button type="button" class="close" data-dismiss="alert" aria-label="Đóng">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+</c:if>
+
 <!-- Tìm kiếm -->
 <form action="admin-category" method="get" class="form-inline mb-3">
   <input type="text" name="keyword" class="form-control rounded-pill mr-2 shadow-sm" placeholder="Tìm danh mục..." value="${param.keyword}">
